@@ -1,6 +1,7 @@
 # -*- mode: gitignore; -*-
 
 /target
+Cargo.lock
 
 # Emacs generated files
 *~
