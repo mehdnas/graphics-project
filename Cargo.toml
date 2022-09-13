@@ -6,4 +6,5 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14"
-glfw = "0.20"
+glfw = "0.45"
+egui = "0.19"
