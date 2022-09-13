@@ -1,28 +1,36 @@
 extern crate gl;
 use gl::types::*;
 
-extern crate winit;
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
+extern crate glfw;
+use glfw::{Action, Context, Key};
+
 
 fn main() {
 
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    event_loop.run(move | event, _, control_flow | {
-        *control_flow = ControlFlow::Wait;
+    let (mut window, events) = glfw.create_window(
+        300, 300, "Graficos por Computador", glfw::WindowMode::Windowed
+    ).expect("Failed to create GLFW window");
 
-        match event {
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } if window_id == window.id() => *control_flow = ControlFlow::Exit,
-            _ => (),
+    window.make_current();
+    window.set_key_polling(true);
+
+    while !window.should_close() {
+        window.swap_buffers();
+
+        glfw.poll_events();
+
+        for (_, event) in glfw::flush_messages(&events) {
+            print!("{:?}", event);
+
+            match event {
+                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _)
+                    => {
+                        window.set_should_close(true)
+                    },
+                _ => {},
+            }
         }
-    });
-
+    }
 }
