@@ -1,9 +1,10 @@
 extern crate gl;
-use gl::types::*;
+// use gl::types::*;
 
-extern crate glfw;
 use glfw::{Action, Context, Key};
 
+use egui_glfw_gl as egui_backend;
+use egui;
 
 fn main() {
 
@@ -22,23 +23,31 @@ fn main() {
 
     gl::load_with(|proc_name| window.get_proc_address(proc_name));
 
+    let mut painter = egui_backend::Painter::new(
+        &mut window, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32
+    );
+    let native_pixels_per_point = window.get_content_scale().0;
+
     unsafe {gl::Viewport(0, 0, WINDOW_HEIGHT, WINDOW_WIDTH)}
-    unsafe {gl::ClearColor(1.0, 1.0, 1.0, 1.0)}
+    unsafe {gl::ClearColor(0.0, 0.0, 0.0, 0.0)}
 
     while !window.should_close() {
 
         glfw.poll_events();
-
-        unsafe {gl::Clear(gl::COLOR_BUFFER_BIT)}
 
         for (_, event) in glfw::flush_messages(&events) {
             print!("{:?}", event);
 
             handle_window_event(&mut window, event);
         }
+
+
+
         window.swap_buffers();
+        unsafe {gl::Clear(gl::COLOR_BUFFER_BIT)}
     }
 }
+
 
 fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
     match event {
