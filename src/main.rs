@@ -4,14 +4,21 @@ extern crate gl;
 use glfw::{Action, Context, Key};
 
 use egui_glfw_gl as egui_backend;
-use egui;
+use egui{vec2, Color32, Image, Pos2, Rect};
+
+use std::ffi::CString;
+use std::mem;
+use std::ptr;
+use std::str;
+
+mod triangle;
+
+const WINDOW_HEIGHT: i32 = 640;
+const WINDOW_WIDTH: i32 = 480;
 
 fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-
-    const WINDOW_HEIGHT: i32 = 640;
-    const WINDOW_WIDTH: i32 = 480;
 
     let (mut window, events) = glfw.create_window(
         WINDOW_HEIGHT as u32, WINDOW_WIDTH as u32, "Graficos por Computador",
