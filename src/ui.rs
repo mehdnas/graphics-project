@@ -79,6 +79,10 @@ impl Gui {
         }
     }
 
+    pub fn get_window_size(&self) -> (i32, i32) {
+        self.window.get_size()
+    }
+
     pub fn should_close_window(&self) -> bool {
         self.window.should_close()
     }

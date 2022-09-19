@@ -8,24 +8,25 @@ use quad::Quad;
 use shader_program::ShaderProgram;
 
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
-use vao::{Vertex, Vao};
 
 mod ui;
 mod quad;
 mod vao;
 mod shader_program;
+mod framebuffer;
+mod texture;
 
 const WINDOW_HEIGHT: i32 = 600;
 const WINDOW_WIDTH: i32 = 800;
 
 extern "system" fn gl_debug_proc(
-    source: GLenum,
-    gltype: GLenum,
-    id: GLuint,
+    _source: GLenum,
+    _gltype: GLenum,
+    _id: GLuint,
     severity: GLenum,
-    length: GLsizei,
+    _length: GLsizei,
     message: *const GLchar,
-    user_param: *mut c_void
+    _user_param: *mut c_void
 ) {
     if severity != gl::DEBUG_SEVERITY_NOTIFICATION {
         let message_c_str: &CStr = unsafe {CStr::from_ptr(message)};
