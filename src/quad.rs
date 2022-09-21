@@ -19,10 +19,10 @@ impl Default for Quad {
     fn default() -> Self {
 
         let vertices: [Vertex; 4] = [
-            Vertex{pos: (-1.,  1.)},
-            Vertex{pos: ( 1.,  1.)},
-            Vertex{pos: ( 1., -1.)},
-            Vertex{pos: (-1., -1.)},
+            Vertex{pos: (-1.,  1.), tex_coord: ( 0.,  1.)},
+            Vertex{pos: ( 1.,  1.), tex_coord: ( 1.,  1.)},
+            Vertex{pos: ( 1., -1.), tex_coord: ( 1.,  0.)},
+            Vertex{pos: (-1., -1.), tex_coord: ( 0.,  0.)},
         ];
 
         let indices: [u32; 6] = [0, 1, 2, 0, 2, 3];

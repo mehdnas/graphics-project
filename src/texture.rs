@@ -15,16 +15,16 @@ pub struct Texture {
 impl Texture {
 
     pub fn new(width: u32, height: u32, texture_type: TexType) -> Self {
-        let id: GLuint = 0;
+        let mut id: GLuint = 0;
 
-        let internal_format: GLint = gl::RGBA as GLint;
-        let format: GLenum = gl::RGBA;
-        let data_type: GLenum = gl::UNSIGNED_BYTE;
+        let mut internal_format: GLint = gl::RGBA as GLint;
+        let mut format: GLenum = gl::RGBA;
+        let mut data_type: GLenum = gl::UNSIGNED_BYTE;
 
         if texture_type == TexType::DepthStencil {
             internal_format = gl::DEPTH24_STENCIL8 as GLint;
             format = gl::DEPTH_STENCIL;
-            data_type = gl::UNSIGNED_INT_24_8
+            data_type = gl::UNSIGNED_INT_24_8;
         }
 
         unsafe {

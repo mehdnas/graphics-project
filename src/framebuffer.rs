@@ -4,7 +4,7 @@ use crate::texture::{Texture, TexType};
 
 
 
-struct Framebuffer {
+pub struct Framebuffer {
     id: GLuint,
     width: u32,
     height: u32,
@@ -69,6 +69,10 @@ impl Framebuffer {
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
+    }
+
+    pub fn get_color_attachment_id(&self) -> GLuint {
+        self.color_attachment.get_id()
     }
 }
 

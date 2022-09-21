@@ -5,6 +5,7 @@ use gl::{self, types::*};
 
 pub struct Vertex {
     pub pos: (f32, f32),
+    pub tex_coord: (f32, f32),
 }
 
 pub struct Vao {
@@ -53,8 +54,19 @@ impl Vao {
                 2,
                 gl::FLOAT,
                 gl::FALSE,
-                2 * 4,
+                mem::size_of::<Vertex>() as GLsizei,
                 0 as *const _
+            );
+
+            gl::EnableVertexAttribArray(1);
+
+            gl::VertexAttribPointer(
+                1,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                mem::size_of::<Vertex>() as GLsizei,
+                (mem::size_of::<f32>() * 2) as *const _
             );
 
             gl::BindVertexArray(0);

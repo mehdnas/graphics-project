@@ -1,6 +1,7 @@
-use std::{fs, convert::TryInto, thread::panicking};
+use std::{fs, convert::TryInto};
 
-use gl::{types::{GLuint, GLint, GLsizei}, UseProgram};
+use gl::types::{GLuint, GLint, GLsizei};
+use nalgebra_glm as glm;
 
 const INFO_LOG_BUFFER_LEN: GLsizei = 1024;
 
@@ -15,9 +16,9 @@ impl ShaderProgram {
 
     pub fn new(vertex_shader_path: &str, fragment_shader_path: &str) -> Self {
 
-        let mut vertex_shader_id: GLuint = 0;
-        let mut fragment_shader_id: GLuint = 0;
-        let mut program_id: GLuint = 0;
+        let vertex_shader_id: GLuint;
+        let fragment_shader_id: GLuint;
+        let program_id: GLuint;
 
         let vertex_shader_src = fs::read_to_string(vertex_shader_path)
             .expect("Could not read the vertex shader file");
@@ -70,6 +71,23 @@ impl ShaderProgram {
         }
     }
 
+    pub fn set_uniform_mat3(&self, name: &str, mat: &glm::Mat3) {
+        let cname = std::ffi::CString::new(name).expect("CString new failed");
+        unsafe {
+            let location = gl::GetUniformLocation(
+                self.program_id,
+                cname.to_bytes().as_ptr().cast()
+            );
+            assert_ne!(location, -1, "Failed to get uniform location");
+            gl::UniformMatrix3fv(
+                location,
+                1,
+                gl::FALSE,
+                glm::value_ptr(&mat).as_ptr().cast()
+            );
+        }
+    }
+
     fn compile_shader(shader_id: GLuint, shader_src: &String) {
 
         unsafe {
@@ -95,7 +113,11 @@ impl ShaderProgram {
                     v.as_mut_ptr().cast(),
                 );
                 v.set_len(log_len.try_into().unwrap());
-                panic!("Vertex Compile Error: {}", String::from_utf8_lossy(&v));
+                panic!(
+                    "Vertex Compile Error: {} \n {}",
+                    String::from_utf8_lossy(&v),
+                    shader_src
+                );
             }
         }
     }
