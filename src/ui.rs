@@ -1,8 +1,9 @@
 
-use std::time::Instant;
+use std::{time::Instant, collections::VecDeque};
 use std::sync::mpsc::Receiver;
 
 use egui_glfw_gl as egui_backend;
+use nalgebra_glm as glm;
 
 use egui_backend::glfw as glfw;
 use glfw::{Action, Context, Key, };
@@ -19,11 +20,17 @@ pub struct Gui {
     native_pixels_per_point: f32,
     egui_input_state: egui_backend::EguiInputState,
     start_time: Instant,
+    scroll_amount: f64,
+    cursor_left_presses: VecDeque<glm::Vec2>,
 }
 
 impl Gui {
 
-    pub fn new(width: u32, height: u32, title: &str) -> Self {
+    pub fn new(
+        width: u32,
+        height: u32,
+        title: &str,
+    ) -> Self {
 
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
@@ -40,6 +47,8 @@ impl Gui {
         window.set_cursor_pos_polling(true);
         window.set_key_polling(true);
         window.set_mouse_button_polling(true);
+
+        window.set_scroll_polling(true);
 
         window.make_current();
 
@@ -76,6 +85,8 @@ impl Gui {
             native_pixels_per_point,
             egui_input_state,
             start_time,
+            scroll_amount: 0.0,
+            cursor_left_presses: VecDeque::new(),
         }
     }
 
@@ -130,18 +141,52 @@ impl Gui {
         egui_backend::egui::Window::new("GUI").show(&self.egui_ctx, gui_fn);
     }
 
+    pub fn consume_scroll_amount(&mut self) -> f64 {
+        let used_scroll_amount = self.scroll_amount;
+        self.scroll_amount = 0.0;
+        used_scroll_amount
+    }
+
+    pub fn consume_cursor_left_press_pos(&mut self) -> Option<glm::Vec2> {
+        self.cursor_left_presses.pop_front()
+    }
+
     fn handle_window_events(&mut self) {
 
         for (_, event) in glfw::flush_messages(&self.events) {
 
             match event {
+
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                     self.window.set_should_close(true);
                 },
-                _ => {
-                    egui_backend::handle_event(event, &mut self.egui_input_state);
+
+                glfw::WindowEvent::Scroll(_, y) => {
+                    if !self.egui_ctx.is_pointer_over_area() {
+                        self.scroll_amount += y
+                    }
                 }
+
+                glfw::WindowEvent::MouseButton(
+                    glfw::MouseButtonLeft, glfw::Action::Press, _
+                ) => {
+                    if !self.egui_ctx.is_pointer_over_area() {
+                        let (x, y) = self.window.get_cursor_pos();
+                        self.cursor_left_presses.push_back(
+                            glm::vec2(x as f32, y as f32)
+                        );
+                    }
+                }
+
+                _ => {}
             }
+            egui_backend::handle_event(event, &mut self.egui_input_state);
         }
+    }
+}
+
+impl Drop for Gui {
+    fn drop(&mut self) {
+        self.painter.cleanup();
     }
 }

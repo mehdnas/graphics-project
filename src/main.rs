@@ -1,23 +1,26 @@
 use core::ffi::CStr;
 use std::ffi::c_void;
 
-use nalgebra_glm as glm;
-
+mod common;
 mod ui;
 mod quad;
 mod vao;
 mod shader_program;
 mod framebuffer;
 mod texture;
+mod screen;
+mod line;
 
+use nalgebra_glm as glm;
+
+use line::Line;
 use quad::Quad;
+use screen::Screen;
 use shader_program::ShaderProgram;
 
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
 use framebuffer::Framebuffer;
-
-const WINDOW_HEIGHT: i32 = 600;
-const WINDOW_WIDTH: i32 = 800;
+use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
 
 extern "system" fn gl_debug_proc(
     _source: GLenum,
@@ -36,12 +39,14 @@ extern "system" fn gl_debug_proc(
 fn main() {
 
     let mut gui = ui::Gui::new(
-        WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, "Graficos por Computador"
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        "Graficos por Computador",
     );
 
     unsafe {
         gl::DebugMessageCallback(Some(gl_debug_proc), 0 as *const c_void);
-        gl::Enable(gl::DEBUG_OUTPUT);
+        //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
     let quad = Quad::default();
@@ -49,23 +54,36 @@ fn main() {
         "src/shaders/noise_vertex.glsl",
         "src/shaders/noise_fragment.glsl"
     );
-    let screen_shader_program = ShaderProgram::new(
-        "src/shaders/screen_vertex.glsl",
-        "src/shaders/screen_fragment.glsl"
-    );
-    let framebuffer = Framebuffer::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
+    let framebuffer = Framebuffer::new(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let mut screen = Screen::default();
 
-    unsafe {
-        gl::Viewport(0, 0, WINDOW_HEIGHT, WINDOW_WIDTH);
-        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-    }
-
-    let mut transform = glm::identity::<f32, glm::U3>();
-    let mut scale = 1.0;
+    let mut lines: Vec<Line> = Vec::new();
+    let mut line_start: Option<glm::Vec2> = None;
 
     while !gui.should_close_window() {
 
         gui.start_frame();
+
+        screen.update_zoom(gui.consume_scroll_amount());
+
+        match (gui.consume_cursor_left_press_pos(), line_start) {
+
+            (Some(mut start_pos), None) => {
+                transform_pos(&mut start_pos);
+                line_start = Some(start_pos);
+            }
+
+            (Some(mut end_pos), Some(_)) => {
+                transform_pos(&mut end_pos);
+                lines.push(Line::new(
+                    line_start.unwrap(),
+                    end_pos
+                ));
+                line_start = None;
+            }
+
+            (None, _) => {}
+        }
 
         framebuffer.bind();
 
@@ -73,35 +91,40 @@ fn main() {
 
         framebuffer.unbind();
 
-        unsafe {
-            gl::BindTexture(
-                gl::TEXTURE_2D,
-                framebuffer.get_color_attachment_id()
+        screen.render_framebuffer(&framebuffer);
+
+        println!("Lines {{");
+
+        for line in &lines {
+            println!(
+                "({}, {}) -> ({}, {})",
+                line.start.x,
+                line.start.y,
+                line.end.x,
+                line.end.y,
             );
         }
 
-        screen_shader_program.bind();
-
-        screen_shader_program.set_uniform_mat3("transform", &transform);
-
-        quad.render(&screen_shader_program);
+        println!("}}");
 
         gui.show(|ui| {
             ui.separator();
             ui.label(" ");
-            if ui.button("zoom in").clicked() {
-                scale += 0.1;
-                transform = glm::diagonal3x3(&glm::vec3(scale, scale, 1.0));
+            if ui.button("clear").clicked() {
+                lines.clear();
             }
-            ui.label(" ");
-            if ui.button("zoom out").clicked() {
-                scale -= 0.1;
-                transform = glm::diagonal3x3(&glm::vec3(scale, scale, 1.0));
-            }
-            ui.label(" ");
         });
 
         gui.end_frame();
     }
 }
 
+fn transform_pos(pos: &mut glm::Vec2) {
+    pos.x = pos.x - WINDOW_WIDTH as f32 / 2_f32;
+    pos.y = - pos.y + WINDOW_HEIGHT as f32 / 2_f32;
+}
+
+fn normalize_pos(pos: &mut glm::Vec2) {
+    pos.x = (pos.x * 2_f32) / WINDOW_WIDTH as f32;
+    pos.y = (pos.y * 2_f32) / WINDOW_HEIGHT as f32;
+}

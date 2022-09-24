@@ -1,15 +1,24 @@
-use gl::types::GLuint;
+use gl::types::{GLuint, GLint};
 
-use crate::texture::{Texture, TexType};
-
+use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT}};
 
 
 pub struct Framebuffer {
     id: GLuint,
-    width: u32,
-    height: u32,
-    color_attachment: Texture,
-    depth_stencil_attachment: Texture,
+    width: GLint,
+    height: GLint,
+    color_attachment: Option<Texture>,
+}
+
+impl Default for Framebuffer {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            width: WINDOW_WIDTH as GLint,
+            height: WINDOW_HEIGHT as GLint,
+            color_attachment: None
+        }
+    }
 }
 
 impl Framebuffer {
@@ -51,10 +60,9 @@ impl Framebuffer {
 
         Self {
             id,
-            width,
-            height,
-            color_attachment,
-            depth_stencil_attachment,
+            width: width as GLint,
+            height: height as GLint,
+            color_attachment: Some(color_attachment),
         }
     }
 
@@ -71,8 +79,21 @@ impl Framebuffer {
         }
     }
 
-    pub fn get_color_attachment_id(&self) -> GLuint {
-        self.color_attachment.get_id()
+    pub fn use_color_attachment(&self) {
+
+        match &self.color_attachment {
+            Some(texture) => {
+                unsafe {
+                    gl::BindTexture(
+                        gl::TEXTURE_2D,
+                        texture.get_id()
+                    );
+                }
+            }
+            None => {
+                panic!("Probably trying to use default framebuffer's color attachment");
+            }
+        }
     }
 }
 
