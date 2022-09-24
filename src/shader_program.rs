@@ -88,6 +88,38 @@ impl ShaderProgram {
         }
     }
 
+    pub fn set_uniform_vec2(&self, name: &str, vec: &glm::Vec2) {
+        let cname = std::ffi::CString::new(name).expect("CString new failed");
+        unsafe {
+            let location = gl::GetUniformLocation(
+                self.program_id,
+                cname.to_bytes().as_ptr().cast()
+            );
+            assert_ne!(location, -1, "Failed to get uniform location");
+            gl::Uniform2fv(
+                location,
+                1,
+                glm::value_ptr(&vec).as_ptr().cast()
+            );
+        }
+    }
+
+    pub fn set_uniform_vec3(&self, name: &str, vec: &glm::Vec3) {
+        let cname = std::ffi::CString::new(name).expect("CString new failed");
+        unsafe {
+            let location = gl::GetUniformLocation(
+                self.program_id,
+                cname.to_bytes().as_ptr().cast()
+            );
+            assert_ne!(location, -1, "Failed to get uniform location");
+            gl::Uniform2fv(
+                location,
+                1,
+                glm::value_ptr(&vec).as_ptr().cast()
+            );
+        }
+    }
+
     fn compile_shader(shader_id: GLuint, shader_src: &String) {
 
         unsafe {

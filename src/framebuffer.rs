@@ -1,6 +1,6 @@
 use gl::types::{GLuint, GLint};
 
-use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT}};
+use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT, Color}};
 
 
 pub struct Framebuffer {
@@ -76,6 +76,14 @@ impl Framebuffer {
     pub fn unbind(&self) {
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        }
+    }
+
+    pub fn clear(&self, color: &Color) {
+        self.bind();
+        unsafe {
+            gl::ClearColor(color.r, color.g, color.b, color.a);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
         }
     }
 
