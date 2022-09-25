@@ -52,12 +52,22 @@ fn main() {
     }
 
     let quad = Quad::default();
-    let noise_shader_program = ShaderProgram::new(
-        "src/shaders/noise_vertex.glsl",
-        "src/shaders/noise_fragment.glsl"
+    let line_shader_program = ShaderProgram::new(
+        "src/shaders/line_vertex.glsl",
+        "src/shaders/line_fragment.glsl"
     );
-    noise_shader_program.bind();
-    noise_shader_program.set_uniform_vec2(
+    line_shader_program.bind();
+    line_shader_program.set_uniform_vec2(
+        "canvas_size",
+        &glm::vec2(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32)
+    );
+
+    let steap_line_shader_program = ShaderProgram::new(
+        "src/shaders/line_vertex.glsl",
+        "src/shaders/steap_line_fragment.glsl"
+    );
+    steap_line_shader_program.bind();
+    steap_line_shader_program.set_uniform_vec2(
         "canvas_size",
         &glm::vec2(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32)
     );
@@ -83,12 +93,16 @@ fn main() {
                 line_start = Some(start_pos);
             }
 
-            (Some(mut end_pos), Some(_)) => {
+            (Some(mut end_pos), Some(mut start_pos)) => {
                 transform_pos(&mut end_pos, &screen.get_transform());
-                lines.push(Line::new(
-                    line_start.unwrap(),
-                    end_pos
-                ));
+
+                if end_pos.x < start_pos.x {
+                    let tmp_pos = start_pos;
+                    start_pos = end_pos;
+                    end_pos = tmp_pos;
+                }
+
+                lines.push(Line::new(start_pos, end_pos));
                 line_start = None;
             }
 
@@ -97,12 +111,31 @@ fn main() {
 
         framebuffer.bind();
 
-        noise_shader_program.bind();
+        line_shader_program.bind();
 
         for line in &lines {
-            noise_shader_program.set_uniform_vec2("point1", &line.start);
-            noise_shader_program.set_uniform_vec2("point2", &line.end);
-            quad.render(&noise_shader_program);
+
+            let dx = line.end.x - line.start.x;
+            let dy = line.end.y - line.start.y;
+            let m;
+            let b;
+            let shader: &ShaderProgram;
+
+
+            if dy <= dx {
+                m = dy / dx;
+                b = line.start.y - m * line.start.x;
+                shader = &line_shader_program;
+            }
+            else {
+                m = dx / dy;
+                b = line.start.x - m * line.start.y;
+                shader = &steap_line_shader_program;
+            }
+
+            shader.set_uniform_f32("m", m);
+            shader.set_uniform_f32("b", b);
+            quad.render(shader);
         }
 
         framebuffer.unbind();

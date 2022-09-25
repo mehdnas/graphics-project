@@ -71,7 +71,7 @@ impl ShaderProgram {
         }
     }
 
-    pub fn set_uniform_mat3(&self, name: &str, mat: &glm::Mat3) {
+    pub fn set_uniform_f32(&self, name: &str, float: f32) {
         let cname = std::ffi::CString::new(name).expect("CString new failed");
         unsafe {
             let location = gl::GetUniformLocation(
@@ -79,8 +79,17 @@ impl ShaderProgram {
                 cname.to_bytes().as_ptr().cast()
             );
             assert_ne!(location, -1, "Failed to get uniform location");
-            gl::UniformMatrix3fv(
+            gl::Uniform1f(
                 location,
+                float
+            );
+        }
+    }
+
+    pub fn set_uniform_mat3(&self, name: &str, mat: &glm::Mat3) {
+        unsafe {
+            gl::UniformMatrix3fv(
+                self.get_uniform_location(name),
                 1,
                 gl::FALSE,
                 glm::value_ptr(&mat).as_ptr().cast()
@@ -89,15 +98,9 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_vec2(&self, name: &str, vec: &glm::Vec2) {
-        let cname = std::ffi::CString::new(name).expect("CString new failed");
         unsafe {
-            let location = gl::GetUniformLocation(
-                self.program_id,
-                cname.to_bytes().as_ptr().cast()
-            );
-            assert_ne!(location, -1, "Failed to get uniform location");
             gl::Uniform2fv(
-                location,
+                self.get_uniform_location(name),
                 1,
                 glm::value_ptr(&vec).as_ptr().cast()
             );
@@ -105,19 +108,29 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_vec3(&self, name: &str, vec: &glm::Vec3) {
-        let cname = std::ffi::CString::new(name).expect("CString new failed");
         unsafe {
-            let location = gl::GetUniformLocation(
-                self.program_id,
-                cname.to_bytes().as_ptr().cast()
-            );
-            assert_ne!(location, -1, "Failed to get uniform location");
             gl::Uniform2fv(
-                location,
+                self.get_uniform_location(name),
                 1,
                 glm::value_ptr(&vec).as_ptr().cast()
             );
         }
+    }
+
+    fn get_uniform_location(&self, name: &str) -> GLint {
+
+        let location: GLint;
+        let cname = std::ffi::CString::new(name).expect("CString new failed");
+
+        unsafe {
+            location = gl::GetUniformLocation(
+                self.program_id,
+                cname.to_bytes().as_ptr().cast()
+            );
+            assert_ne!(location, -1, "Failed to get uniform location");
+        }
+
+        location
     }
 
     fn compile_shader(shader_id: GLuint, shader_src: &String) {
