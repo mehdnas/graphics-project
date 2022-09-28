@@ -8,6 +8,7 @@ pub struct Line {
 
 impl Line {
     pub fn new(start: glm::Vec2, end: glm::Vec2) -> Self {
+
         Self {
             start,
             end,

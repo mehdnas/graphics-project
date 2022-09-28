@@ -98,6 +98,10 @@ impl Gui {
         self.window.should_close()
     }
 
+    pub fn is_key_pressed(&self, key: glfw::Key) -> bool {
+        self.window.get_key(key) == glfw::Action::Press
+    }
+
     pub fn start_frame(&mut self) {
 
         self.egui_input_state.input.time = Some(

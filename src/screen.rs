@@ -16,7 +16,7 @@ const FRAGMENT_SHADER_SRC: &str = "src/shaders/screen_fragment.glsl";
 
 pub struct Screen {
     scale: f32,
-    transform: glm::Mat3,
+    pos: glm::Vec2,
     quad: Quad,
     back_color: Color,
     framebuffer: Framebuffer,
@@ -25,14 +25,14 @@ pub struct Screen {
 
 impl Screen {
 
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u16, height: u16) -> Self {
 
         let shader = ShaderProgram::new(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
         Self {
             scale: 1.0,
+            pos: glm::vec2(0.0, 0.0),
             quad: Quad::default(),
-            transform: glm::diagonal3x3(&glm::vec3(1.0, 1.0, 1.0)),
-            back_color: Color::default(),
+            back_color: Color {r: 0.1, g: 0.1, b: 0.1, a: 1.0},
             framebuffer: Framebuffer::new(width, height),
             shader,
         }
@@ -49,24 +49,27 @@ impl Screen {
             self.scale = MIN_SCALE
         }
 
-        self.transform = glm::diagonal3x3(&glm::vec3(self.scale, self.scale, 1.0));
     }
 
-    pub fn get_transform(&self) -> glm::Mat3 {
-        self.transform
+    pub fn move_canvas(&mut self, pos_delta: &glm::Vec2) {
+        self.pos += pos_delta;
     }
 
-    pub fn render_framebuffer(&self, framebuffer: &Framebuffer) {
+    pub fn get_scale(&self) -> f32 {
+        self.scale
+    }
+
+    pub fn get_pos(&self) -> glm::Vec2 {
+        self.pos
+    }
+
+    pub fn render_used_texture(&self) {
 
         self.framebuffer.bind();
 
         self.shader.bind();
 
-        let transform = glm::diagonal3x3(&glm::vec3(self.scale, self.scale, 1.0));
-
-        self.shader.set_uniform_mat3("transform", &transform);
-
-        framebuffer.use_color_attachment();
+        self.shader.set_uniform_mat3("transform", &self.compute_transform());
 
         self.quad.render(&self.shader);
 
@@ -80,6 +83,15 @@ impl Screen {
     pub fn set_background_color(&mut self, color: Color) {
         self.back_color = color;
     }
+
+    pub fn compute_transform(&self) -> glm::Mat3 {
+
+        let translation = glm::translate2d(&glm::Mat3::identity(), &self.pos);
+
+        let scaling = glm::diagonal3x3(&glm::vec3(self.scale, self.scale, 1.0));
+
+        scaling * translation
+    }
 }
 
 impl Default for Screen {
@@ -89,9 +101,9 @@ impl Default for Screen {
 
         Self {
             scale: 1.0,
-            transform: glm::diagonal3x3(&glm::vec3(1.0, 1.0, 1.0)),
+            pos: glm::vec2(0.0, 0.0),
             quad: Quad::default(),
-            back_color: Color::default(),
+            back_color: Color {r: 0.2, g: 0.2, b: 0.2, a: 1.0},
             framebuffer: Framebuffer::default(),
             shader,
         }

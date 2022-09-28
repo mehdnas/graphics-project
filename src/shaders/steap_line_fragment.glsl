@@ -12,8 +12,8 @@ out vec4 final_color;
 void main() {
 
 
-  if (round(frag_pos.x) == round(m * frag_pos.y + b)) {
-    final_color = vec4(1.0, 1.0, 1.0, 1.0);
+  if (int(round(frag_pos.x)) == int(round(m * frag_pos.y + b))) {
+    final_color = vec4(1.0, 0.0, 0.0, 1.0);
   }
   else {
     discard;

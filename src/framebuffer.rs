@@ -1,12 +1,12 @@
 use gl::types::{GLuint, GLint};
 
-use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT, Color}};
+use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT, Color, ColorU8}};
 
 
 pub struct Framebuffer {
     id: GLuint,
-    width: GLint,
-    height: GLint,
+    width: u16,
+    height: u16,
     color_attachment: Option<Texture>,
 }
 
@@ -14,8 +14,8 @@ impl Default for Framebuffer {
     fn default() -> Self {
         Self {
             id: 0,
-            width: WINDOW_WIDTH as GLint,
-            height: WINDOW_HEIGHT as GLint,
+            width: WINDOW_WIDTH as u16,
+            height: WINDOW_HEIGHT as u16,
             color_attachment: None
         }
     }
@@ -23,7 +23,7 @@ impl Default for Framebuffer {
 
 impl Framebuffer {
 
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: u16, height: u16) -> Self {
 
         let mut id: GLuint = 0;
         let color_attachment = Texture::new(width, height, TexType::Color);
@@ -60,8 +60,8 @@ impl Framebuffer {
 
         Self {
             id,
-            width: width as GLint,
-            height: height as GLint,
+            width,
+            height,
             color_attachment: Some(color_attachment),
         }
     }
@@ -87,6 +87,10 @@ impl Framebuffer {
         }
     }
 
+    pub fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+
     pub fn use_color_attachment(&self) {
 
         match &self.color_attachment {
@@ -101,6 +105,16 @@ impl Framebuffer {
             None => {
                 panic!("Probably trying to use default framebuffer's color attachment");
             }
+        }
+    }
+
+    pub fn set_color_data(&mut self, color_data: &[ColorU8]) {
+        match self.color_attachment {
+            Some(mut texture) => {
+                texture.set_data(color_data);
+            }
+
+            None => {}
         }
     }
 }

@@ -72,21 +72,23 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_f32(&self, name: &str, float: f32) {
+
         let cname = std::ffi::CString::new(name).expect("CString new failed");
+
+        self.bind();
+
         unsafe {
-            let location = gl::GetUniformLocation(
-                self.program_id,
-                cname.to_bytes().as_ptr().cast()
-            );
-            assert_ne!(location, -1, "Failed to get uniform location");
             gl::Uniform1f(
-                location,
+                self.get_uniform_location(name),
                 float
             );
         }
     }
 
     pub fn set_uniform_mat3(&self, name: &str, mat: &glm::Mat3) {
+
+        self.bind();
+
         unsafe {
             gl::UniformMatrix3fv(
                 self.get_uniform_location(name),
@@ -98,6 +100,9 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_vec2(&self, name: &str, vec: &glm::Vec2) {
+
+        self.bind();
+
         unsafe {
             gl::Uniform2fv(
                 self.get_uniform_location(name),
@@ -108,6 +113,9 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_vec3(&self, name: &str, vec: &glm::Vec3) {
+
+        self.bind();
+
         unsafe {
             gl::Uniform2fv(
                 self.get_uniform_location(name),

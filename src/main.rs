@@ -1,5 +1,5 @@
 use core::ffi::CStr;
-use std::ffi::c_void;
+use std::{ffi::c_void, time::{Instant, Duration}};
 
 mod common;
 mod ui;
@@ -10,19 +10,20 @@ mod framebuffer;
 mod texture;
 mod screen;
 mod line;
+mod lines_renderer;
 
 use nalgebra_glm as glm;
+use egui_glfw_gl as egui_backend;
+use egui_backend::glfw;
 
 use line::Line;
-use quad::Quad;
 use screen::Screen;
-use shader_program::ShaderProgram;
+use lines_renderer::{LinesRenderer, LineAlgorithem};
 
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
-use framebuffer::Framebuffer;
 use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
-
-use crate::common::Color;
+use lines_renderer::{CANVAS_HEIGHT, CANVAS_WIDTH};
+use ui::Gui;
 
 extern "system" fn gl_debug_proc(
     _source: GLenum,
@@ -51,51 +52,36 @@ fn main() {
         //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
-    let quad = Quad::default();
-    let line_shader_program = ShaderProgram::new(
-        "src/shaders/line_vertex.glsl",
-        "src/shaders/line_fragment.glsl"
-    );
-    line_shader_program.bind();
-    line_shader_program.set_uniform_vec2(
-        "canvas_size",
-        &glm::vec2(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32)
-    );
+    let move_speed = glm::Vec2::new(CANVAS_WIDTH as f32 / 200.0, CANVAS_HEIGHT as f32 / 200.0);
 
-    let steap_line_shader_program = ShaderProgram::new(
-        "src/shaders/line_vertex.glsl",
-        "src/shaders/steap_line_fragment.glsl"
-    );
-    steap_line_shader_program.bind();
-    steap_line_shader_program.set_uniform_vec2(
-        "canvas_size",
-        &glm::vec2(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32)
-    );
 
-    let framebuffer = Framebuffer::new(WINDOW_WIDTH, WINDOW_HEIGHT);
     let mut screen = Screen::default();
+
+    let lines_renderer = LinesRenderer::default();
 
     let mut lines: Vec<Line> = Vec::new();
     let mut line_start: Option<glm::Vec2> = None;
+
+    let mut start = Instant::now();
+    let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
     while !gui.should_close_window() {
 
         gui.start_frame();
 
-        framebuffer.clear(&Color::default());
-
         screen.update_zoom(gui.consume_scroll_amount());
+
+        screen.move_canvas(&get_move_deltas(&gui, &dt, &move_speed));
 
         match (gui.consume_cursor_left_press_pos(), line_start) {
 
             (Some(mut start_pos), None) => {
-                transform_pos(&mut start_pos, &screen.get_transform());
+                transform_pos(&mut start_pos, &screen);
                 line_start = Some(start_pos);
             }
 
             (Some(mut end_pos), Some(mut start_pos)) => {
-                transform_pos(&mut end_pos, &screen.get_transform());
-
+                transform_pos(&mut end_pos, &screen);
                 if end_pos.x < start_pos.x {
                     let tmp_pos = start_pos;
                     start_pos = end_pos;
@@ -109,38 +95,13 @@ fn main() {
             (None, _) => {}
         }
 
-        framebuffer.bind();
+        lines_renderer.render(&lines, LineAlgorithem::SlopeInterceptGPU);
 
-        line_shader_program.bind();
+        lines_renderer.use_canvas_color_attachment();
 
-        for line in &lines {
+        screen.clear();
 
-            let dx = line.end.x - line.start.x;
-            let dy = line.end.y - line.start.y;
-            let m;
-            let b;
-            let shader: &ShaderProgram;
-
-
-            if dy <= dx {
-                m = dy / dx;
-                b = line.start.y - m * line.start.x;
-                shader = &line_shader_program;
-            }
-            else {
-                m = dx / dy;
-                b = line.start.x - m * line.start.y;
-                shader = &steap_line_shader_program;
-            }
-
-            shader.set_uniform_f32("m", m);
-            shader.set_uniform_f32("b", b);
-            quad.render(shader);
-        }
-
-        framebuffer.unbind();
-
-        screen.render_framebuffer(&framebuffer);
+        screen.render_used_texture();
 
         gui.show(|ui| {
             ui.separator();
@@ -159,25 +120,65 @@ fn main() {
                     line.end.x as i32,
                     line.end.y as i32,
                 ));
-        }
 
+            }
+            match line_start {
+                Some(pos) => {
+                    ui.label(format!("({}, {}) -> ", pos.x, pos.y));
+                }
+
+                None => {}
+            }
         });
 
         gui.end_frame();
+
+        dt = start.elapsed();
+        start = Instant::now();
     }
 }
 
-fn transform_pos(pos: &mut glm::Vec2, transform: &glm::Mat3) {
-    pos.x = pos.x - WINDOW_WIDTH as f32 / 2_f32;
-    pos.y = - pos.y + WINDOW_HEIGHT as f32 / 2_f32;
-    let transform_inv = glm::inverse(transform);
+fn transform_pos(pos: &mut glm::Vec2, screen: &Screen) {
+    pos.x = pos.x - CANVAS_WIDTH as f32 / 2_f32;
+    pos.y = - pos.y + CANVAS_HEIGHT as f32 / 2_f32;
+    let scale = screen.get_scale();
+    let translationv = screen.get_pos().component_mul(
+        &glm::vec2(WINDOW_WIDTH as f32 / 2.0, WINDOW_HEIGHT as f32 / 2.0)
+    );
+    let scale_mat = glm::diagonal3x3(&glm::vec3(scale, scale, 1.0));
+    let translation_mat = glm::translate2d(&glm::Mat3::identity(), &translationv);
+    let transform_inv = glm::inverse(&(scale_mat * translation_mat));
     let pos3 = glm::vec3(pos.x, pos.y, 1.0);
     let result = transform_inv * pos3;
     pos.x = result.x;
     pos.y = result.y;
+
+    println!("{}", transform_inv);
 }
 
 fn normalize_pos(pos: &mut glm::Vec2) {
     pos.x = (pos.x * 2_f32) / WINDOW_WIDTH as f32;
     pos.y = (pos.y * 2_f32) / WINDOW_HEIGHT as f32;
+}
+
+fn get_move_deltas(gui: &Gui, dt: &Duration, move_speed: &glm::Vec2) -> glm::Vec2 {
+
+    let mut move_direction = glm::vec2(0.0, 0.0);
+
+    if gui.is_key_pressed(glfw::Key::D) {
+        move_direction.x = -1.0;
+    }
+    else if gui.is_key_pressed(glfw::Key::A) {
+        move_direction.x = 1.0;
+    }
+
+    if gui.is_key_pressed(glfw::Key::W) {
+        move_direction.y = -1.0;
+    }
+    else if gui.is_key_pressed(glfw::Key::S) {
+        move_direction.y = 1.0;
+    }
+
+    move_speed.component_mul(&move_direction) * dt.as_secs_f32()
+
 }
