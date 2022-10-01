@@ -155,6 +155,11 @@ impl Gui {
         self.cursor_left_presses.pop_front()
     }
 
+    pub fn get_cursor_pos(&self) -> glm::Vec2 {
+        let (x, y) = self.window.get_cursor_pos();
+        glm::vec2(x as f32, y as f32)
+    }
+
     fn handle_window_events(&mut self) {
 
         for (_, event) in glfw::flush_messages(&self.events) {

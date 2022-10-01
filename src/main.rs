@@ -82,13 +82,8 @@ fn main() {
                 line_start = Some(start_pos);
             }
 
-            (Some(mut end_pos), Some(mut start_pos)) => {
+            (Some(mut end_pos), Some(start_pos)) => {
                 transform_pos(&mut end_pos, &screen);
-                if end_pos.x < start_pos.x {
-                    let tmp_pos = start_pos;
-                    start_pos = end_pos;
-                    end_pos = tmp_pos;
-                }
 
                 lines.push(Line::new(start_pos, end_pos));
                 line_start = None;
@@ -105,6 +100,23 @@ fn main() {
 
         screen.render_used_texture();
 
+        render_gui(&gui, &screen, &mut line_algorithem, &mut lines, &mut line_start);
+
+        gui.end_frame();
+
+        dt = start.elapsed();
+        start = Instant::now();
+    }
+}
+
+fn render_gui(
+    gui: &Gui,
+    screen: &Screen,
+    line_algorithem: &mut LineAlgorithem,
+    lines: &mut Vec<Line>,
+    line_start: &mut Option<glm::Vec2>
+) {
+
         gui.show(|ui| {
 
             ui.separator();
@@ -113,27 +125,32 @@ fn main() {
                 matches!(line_algorithem, LineAlgorithem::SlopeIntercept),
                 "Slope intercept"
             ).clicked() {
-                line_algorithem = LineAlgorithem::SlopeIntercept;
+                *line_algorithem = LineAlgorithem::SlopeIntercept;
             }
 
             if ui.radio(
                 matches!(line_algorithem, LineAlgorithem::SlopeInterceptGPU),
                 "Slope intercept Fragment shader"
             ).clicked() {
-                line_algorithem = LineAlgorithem::SlopeInterceptGPU;
+                *line_algorithem = LineAlgorithem::SlopeInterceptGPU;
             }
 
             ui.separator();
 
-            ui.label(" ");
-            if ui.button("clear").clicked() {
-                line_start = None;
-                lines.clear();
-            }
-            ui.label(" ");
+            let mut cursor_pos = gui.get_cursor_pos();
+            transform_pos(&mut cursor_pos, screen);
+
+            ui.label(format!("Cursor position: ({}, {})", cursor_pos.x, cursor_pos.y));
+
+            ui.separator();
 
             ui.label("Lines (start -> end):");
-            for line in &lines {
+            if ui.button("clear").clicked() {
+                *line_start = None;
+                lines.clear();
+            }
+
+            for line in lines {
                 ui.label(format!(
                     "({}, {}) -> ({}, {})",
                     line.start.x as i32,
@@ -145,17 +162,12 @@ fn main() {
             }
             match line_start {
                 Some(pos) => {
-                    ui.label(format!("({}, {}) -> ", pos.x, pos.y));
+                    ui.label(format!("({}, {}) -> ", pos.x as i32, pos.y as i32));
                 }
                 None => {}
             }
         });
 
-        gui.end_frame();
-
-        dt = start.elapsed();
-        start = Instant::now();
-    }
 }
 
 fn transform_pos(pos: &mut glm::Vec2, screen: &Screen) {

@@ -78,51 +78,65 @@ impl LinesRenderer {
     pub fn render_slope_intercept(&mut self, lines: &Vec<Line>) {
 
         let (tex_width, tex_height) = self.canvas.get_size();
-        let size: usize = (tex_width as usize * tex_height as usize) as usize;
+        let size = (tex_width as usize * tex_height as usize) as usize;
         let mut texture = vec![ColorU8::default(); size];
 
         for line in lines {
 
             let (m, b, line_kind) = LinesRenderer::comput_m_b(line);
             let mut line_pixels;
+            let mut color;
 
             match line_kind {
 
                 LineKind::Moderate => {
-                    let pixels_count = (line.end.x - line.start.x + 1.0) as usize;
+
+                    color = ColorU8{g: 255, ..ColorU8::default()};
+
+                    let (start, end) = LinesRenderer::x_order_line_ends(line);
+                    let pixels_count = (end.x - start.x + 1.0) as usize;
 
                     line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
 
                     for i in 0..line_pixels.len() {
-                        line_pixels[i] = glm::U16Vec2::new(
-                            (i as f32 + tex_width as f32 / 2.0) as u16,
-                            (-(m * i as f32 + b) + tex_height as f32 / 2.0).round() as u16,
-                        );
+
+                        let x = i as f32 + start.x;
+                        let y = ((m * x + b) + tex_height as f32 / 2.0).round() as u16;
+                        let x = (x + tex_width as f32 / 2.0) as u16;
+
+                        line_pixels[i] = glm::U16Vec2::new(x,y);
                     }
                 }
 
                 LineKind::Steep => {
 
-                    let pixels_count = (line.end.y - line.end.y + 1.0) as usize;
+                    color = ColorU8{r: 255, ..ColorU8::default()};
+
+                    let (start, end) = LinesRenderer::y_order_line_ends(line);
+                    let pixels_count = (end.y - start.y + 1.0).abs() as usize;
 
                     line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
 
                     for i in 0..line_pixels.len() {
-                        line_pixels[i] = glm::U16Vec2::new(
-                            (m * i as f32 + b + tex_width as f32 / 2.0).round() as u16,
-                            (-(i as f32) + tex_height as f32 / 2.0) as u16,
-                        );
+
+                        let y = i as f32 + start.y;
+                        let x = ((m * y + b) + tex_width as f32 / 2.0).round() as u16;
+                        let y = (y + tex_height as f32 / 2.0) as u16;
+
+                        line_pixels[i] = glm::U16Vec2::new(x, y);
                     }
                 }
             }
 
             for pixel_pos in &line_pixels {
-                let index: usize = (pixel_pos.x as usize
-                                    * tex_width as usize
-                                    + pixel_pos.y as usize) as usize;
-                texture[index] = ColorU8{
-                    r: 255, g: 255, b: 0, a: 255
-                };
+
+                let index: usize = (
+                    pixel_pos.y as usize
+                        * tex_width as usize
+                        + pixel_pos.x as usize
+                ) as usize;
+
+                texture[index] = color.clone();
             }
 
         }
@@ -182,5 +196,23 @@ impl LinesRenderer {
         }
 
         (m, b, line_kind)
+    }
+
+    fn x_order_line_ends(line: &Line) -> (&glm::Vec2, &glm::Vec2) {
+        if line.start.x > line.end.x {
+            (&line.end, &line.start)
+        }
+        else {
+            (&line.start, &line.end)
+        }
+    }
+
+    fn y_order_line_ends(line: &Line) -> (&glm::Vec2, &glm::Vec2) {
+        if line.start.y > line.end.y {
+            (&line.end, &line.start)
+        }
+        else {
+            (&line.start, &line.end)
+        }
     }
 }
