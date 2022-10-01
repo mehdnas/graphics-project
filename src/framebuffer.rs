@@ -109,8 +109,8 @@ impl Framebuffer {
     }
 
     pub fn set_color_data(&mut self, color_data: &[ColorU8]) {
-        match self.color_attachment {
-            Some(mut texture) => {
+        match &mut self.color_attachment {
+            Some(texture) => {
                 texture.set_data(color_data);
             }
 

@@ -1,5 +1,4 @@
 
-use std::slice::range;
 
 use nalgebra_glm as glm;
 
@@ -63,7 +62,7 @@ impl Default for LinesRenderer {
 
 impl LinesRenderer {
 
-    pub fn render(&self, lines: &Vec<Line>, algorithem: LineAlgorithem) {
+    pub fn render(&self, lines: &Vec<Line>, algorithem: &LineAlgorithem) {
 
         match algorithem {
 
@@ -76,7 +75,7 @@ impl LinesRenderer {
         }
     }
 
-    pub fn render_slope_intercept(&self, lines: &Vec<Line>) {
+    pub fn render_slope_intercept(&mut self, lines: &Vec<Line>) {
 
         for line in lines {
 
@@ -84,7 +83,7 @@ impl LinesRenderer {
             let (tex_width, tex_height) = self.canvas.get_size();
             let mut texture = vec![ColorU8::default(); (tex_width * tex_height) as usize];
 
-            let line_pixels;
+            let mut line_pixels;
 
             match line_kind {
 

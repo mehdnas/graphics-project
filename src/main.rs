@@ -52,12 +52,13 @@ fn main() {
         //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
-    let move_speed = glm::Vec2::new(CANVAS_WIDTH as f32 / 200.0, CANVAS_HEIGHT as f32 / 200.0);
+    let move_speed = glm::Vec2::new(CANVAS_WIDTH as f32 / 600.0, CANVAS_HEIGHT as f32 / 600.0);
 
 
     let mut screen = Screen::default();
 
     let lines_renderer = LinesRenderer::default();
+    let mut line_algorithem = LineAlgorithem::SlopeIntercept;
 
     let mut lines: Vec<Line> = Vec::new();
     let mut line_start: Option<glm::Vec2> = None;
@@ -95,7 +96,7 @@ fn main() {
             (None, _) => {}
         }
 
-        lines_renderer.render(&lines, LineAlgorithem::SlopeInterceptGPU);
+        lines_renderer.render(&lines, &line_algorithem);
 
         lines_renderer.use_canvas_color_attachment();
 
@@ -104,13 +105,31 @@ fn main() {
         screen.render_used_texture();
 
         gui.show(|ui| {
+
             ui.separator();
+
+            if ui.radio(
+                matches!(line_algorithem, LineAlgorithem::SlopeIntercept),
+                "Slope intercept"
+            ).clicked() {
+                line_algorithem = LineAlgorithem::SlopeIntercept;
+            }
+
+            if ui.radio(
+                matches!(line_algorithem, LineAlgorithem::SlopeInterceptGPU),
+                "Slope intercept Fragment shader"
+            ).clicked() {
+                line_algorithem = LineAlgorithem::SlopeInterceptGPU;
+            }
+
+            ui.separator();
+
             ui.label(" ");
             if ui.button("clear").clicked() {
                 line_start = None;
                 lines.clear();
             }
-            ui.separator();
+            ui.label(" ");
             ui.label("Lines (start -> end):");
             for line in &lines {
                 ui.label(format!(
