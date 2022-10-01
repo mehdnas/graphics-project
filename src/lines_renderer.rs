@@ -109,8 +109,8 @@ impl LinesRenderer {
 
                     for i in 0..line_pixels.len() {
                         line_pixels[i] = glm::U16Vec2::new(
-                            (-(m * i as f32 + b) + tex_height as f32 / 2.0).round() as u16,
-                            (i as f32 + tex_width as f32 / 2.0) as u16,
+                            (m * i as f32 + b + tex_width as f32 / 2.0).round() as u16,
+                            (-(i as f32) + tex_height as f32 / 2.0) as u16,
                         );
                     }
                 }
