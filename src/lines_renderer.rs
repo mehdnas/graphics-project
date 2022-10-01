@@ -1,6 +1,4 @@
 
-use std::slice::range;
-
 use nalgebra_glm as glm;
 
 use crate::{
@@ -63,7 +61,7 @@ impl Default for LinesRenderer {
 
 impl LinesRenderer {
 
-    pub fn render(&self, lines: &Vec<Line>, algorithem: LineAlgorithem) {
+    pub fn render(&mut self, lines: &Vec<Line>, algorithem: &LineAlgorithem) {
 
         match algorithem {
 
@@ -72,19 +70,21 @@ impl LinesRenderer {
             }
 
             LineAlgorithem::SlopeIntercept => {
+                self.render_slope_intercept(lines);
             }
         }
     }
 
-    pub fn render_slope_intercept(&self, lines: &Vec<Line>) {
+    pub fn render_slope_intercept(&mut self, lines: &Vec<Line>) {
+
+        let (tex_width, tex_height) = self.canvas.get_size();
+        let size: usize = (tex_width as usize * tex_height as usize) as usize;
+        let mut texture = vec![ColorU8::default(); size];
 
         for line in lines {
 
             let (m, b, line_kind) = LinesRenderer::comput_m_b(line);
-            let (tex_width, tex_height) = self.canvas.get_size();
-            let mut texture = vec![ColorU8::default(); (tex_width * tex_height) as usize];
-
-            let line_pixels;
+            let mut line_pixels;
 
             match line_kind {
 
@@ -117,13 +117,16 @@ impl LinesRenderer {
             }
 
             for pixel_pos in &line_pixels {
-                texture[(pixel_pos.x * tex_width + pixel_pos.y) as usize] = ColorU8{
-                    r: 1, g: 1, b: 1, a: 1
+                let index: usize = (pixel_pos.x as usize
+                                    * tex_width as usize
+                                    + pixel_pos.y as usize) as usize;
+                texture[index] = ColorU8{
+                    r: 255, g: 255, b: 0, a: 255
                 };
             }
 
-            self.canvas.set_color_data(&texture);
         }
+        self.canvas.set_color_data(&texture);
     }
 
     pub fn render_slope_intercept_gpu(&self, lines: &Vec<Line>) {
