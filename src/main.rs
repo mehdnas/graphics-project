@@ -52,12 +52,13 @@ fn main() {
         //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
-    let move_speed = glm::Vec2::new(CANVAS_WIDTH as f32 / 600.0, CANVAS_HEIGHT as f32 / 600.0);
-
+    let move_speed = glm::Vec2::new(
+        CANVAS_WIDTH as f32 / 500.0, CANVAS_HEIGHT as f32 / 500.0
+    );
 
     let mut screen = Screen::default();
 
-    let lines_renderer = LinesRenderer::default();
+    let mut lines_renderer = LinesRenderer::default();
     let mut line_algorithem = LineAlgorithem::SlopeIntercept;
 
     let mut lines: Vec<Line> = Vec::new();
@@ -98,9 +99,9 @@ fn main() {
 
         lines_renderer.render(&lines, &line_algorithem);
 
-        lines_renderer.use_canvas_color_attachment();
-
         screen.clear();
+
+        lines_renderer.use_canvas_color_attachment();
 
         screen.render_used_texture();
 
@@ -130,6 +131,7 @@ fn main() {
                 lines.clear();
             }
             ui.label(" ");
+
             ui.label("Lines (start -> end):");
             for line in &lines {
                 ui.label(format!(
@@ -145,7 +147,6 @@ fn main() {
                 Some(pos) => {
                     ui.label(format!("({}, {}) -> ", pos.x, pos.y));
                 }
-
                 None => {}
             }
         });
@@ -171,8 +172,6 @@ fn transform_pos(pos: &mut glm::Vec2, screen: &Screen) {
     let result = transform_inv * pos3;
     pos.x = result.x;
     pos.y = result.y;
-
-    println!("{}", transform_inv);
 }
 
 fn normalize_pos(pos: &mut glm::Vec2) {

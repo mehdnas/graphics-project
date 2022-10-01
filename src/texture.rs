@@ -60,9 +60,20 @@ impl Texture {
         }
     }
 
+    pub fn bind(&self) {
+        unsafe {
+            gl::BindTexture(
+                gl::TEXTURE_2D,
+                self.id
+            );
+        }
+    }
+
     pub fn set_data(&mut self, color_data: &[ColorU8]) {
 
         let (internal_format, format, data_type) = Texture::get_formats(&self.tex_type);
+
+        self.bind();
 
         unsafe {
             gl::TexImage2D(

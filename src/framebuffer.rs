@@ -95,12 +95,7 @@ impl Framebuffer {
 
         match &self.color_attachment {
             Some(texture) => {
-                unsafe {
-                    gl::BindTexture(
-                        gl::TEXTURE_2D,
-                        texture.get_id()
-                    );
-                }
+                texture.bind()
             }
             None => {
                 panic!("Probably trying to use default framebuffer's color attachment");
