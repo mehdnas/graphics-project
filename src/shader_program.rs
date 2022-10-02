@@ -1,44 +1,80 @@
 use std::{fs, convert::TryInto};
 
-use gl::types::{GLuint, GLint, GLsizei};
+use gl::types::{GLuint, GLint, GLsizei, GLenum};
 use nalgebra_glm as glm;
 
 const INFO_LOG_BUFFER_LEN: GLsizei = 1024;
 
 
 pub struct ShaderProgram {
-    vertex_shader_id: GLuint,
-    fragment_shader_id: GLuint,
+    vertex_shader_id: Option<GLuint>,
+    fragment_shader_id: Option<GLuint>,
+    compute_shader_id: Option<GLuint>,
     program_id: GLuint,
 }
 
 impl ShaderProgram {
 
-    pub fn new(vertex_shader_path: &str, fragment_shader_path: &str) -> Self {
+    pub fn new(
+        graphics_shaders_paths: Option<(&str, &str)>,
+        compute_shader_path: Option<&str>,
+    ) -> Self {
 
-        let vertex_shader_id: GLuint;
-        let fragment_shader_id: GLuint;
+        let vertex_shader_id: Option<GLuint>;
+        let fragment_shader_id: Option<GLuint>;
+        let compute_shader_id: Option<GLuint>;
         let program_id: GLuint;
 
-        let vertex_shader_src = fs::read_to_string(vertex_shader_path)
-            .expect("Could not read the vertex shader file");
-        let fragment_shader_src = fs::read_to_string(fragment_shader_path)
-            .expect("Could not read the fragment shader file");
-
-        unsafe {
-            vertex_shader_id = gl::CreateShader(gl::VERTEX_SHADER);
-            assert_ne!(vertex_shader_id, 0);
-            fragment_shader_id = gl::CreateShader(gl::FRAGMENT_SHADER);
-            assert_ne!(fragment_shader_id, 0);
+        if matches!(graphics_shaders_paths, None) && matches!(compute_shader_path, None) {
+            panic!("Neither graphics shaders nor compute shader paths were given");
         }
-
-        Self::compile_shader(vertex_shader_id, &vertex_shader_src);
-        Self::compile_shader(fragment_shader_id, &fragment_shader_src);
 
         unsafe {
             program_id = gl::CreateProgram();
-            gl::AttachShader(program_id, vertex_shader_id);
-            gl::AttachShader(program_id, fragment_shader_id);
+        }
+
+        match graphics_shaders_paths {
+
+            Some((vs_path, fs_path)) => {
+
+                let vs_id = Self::create_shader(vs_path, gl::VERTEX_SHADER);
+                let fs_id = Self::create_shader(fs_path, gl::FRAGMENT_SHADER);
+
+                unsafe {
+                    gl::AttachShader(program_id, vs_id);
+                    gl::AttachShader(program_id, fs_id);
+                }
+
+                vertex_shader_id = Some(vs_id);
+                fragment_shader_id = Some(fs_id);
+            }
+
+            None => {
+                vertex_shader_id = None;
+                fragment_shader_id = None;
+            }
+
+        }
+
+        match compute_shader_path {
+
+            Some(path) => {
+
+                let cs_id = Self::create_shader(path, gl::COMPUTE_SHADER);
+
+                unsafe {
+                    gl::AttachShader(program_id, cs_id);
+                }
+
+                compute_shader_id = Some(cs_id);
+            }
+
+            None => {
+                compute_shader_id = None;
+            }
+        };
+
+        unsafe {
             gl::LinkProgram(program_id);
 
             let mut success = 0;
@@ -61,8 +97,26 @@ impl ShaderProgram {
         Self {
             vertex_shader_id,
             fragment_shader_id,
+            compute_shader_id,
             program_id,
         }
+    }
+
+    fn create_shader(src_path: &str, shader_type: GLenum) -> GLuint {
+
+        let shader_id: GLuint;
+
+        let shader_src = fs::read_to_string(src_path)
+            .expect("Could not read the compute shade file");
+
+        unsafe {
+            shader_id = gl::CreateShader(shader_type);
+        }
+        assert_ne!(shader_id, 0);
+
+        Self::compile_shader(shader_id, &shader_src);
+
+        shader_id
     }
 
     pub fn bind(&self) {
@@ -181,8 +235,20 @@ impl Drop for ShaderProgram {
     fn drop(&mut self) {
 
         unsafe {
-            gl::DeleteShader(self.vertex_shader_id);
-            gl::DeleteShader(self.fragment_shader_id);
+            match self.vertex_shader_id {
+
+                Some(vs_id) => gl::DeleteShader(vs_id),
+
+                None => {}
+            }
+
+            match self.fragment_shader_id {
+
+                Some(fs_id) => gl::DeleteShader(fs_id),
+
+                None => {}
+            }
+
             gl::DeleteProgram(self.program_id);
         }
     }

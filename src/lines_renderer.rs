@@ -1,8 +1,9 @@
+use std::cmp;
 
 use nalgebra_glm as glm;
 
 use crate::{
-    shader_program::{ShaderProgram, self},
+    shader_program::ShaderProgram,
     framebuffer::Framebuffer,
     line::Line,
     common::*,
@@ -14,7 +15,8 @@ pub const CANVAS_HEIGHT: u16 = WINDOW_HEIGHT as u16;
 
 pub enum LineAlgorithem {
     SlopeIntercept,
-    SlopeInterceptGPU,
+    SlopeInterceptFS,
+    DDA,
 }
 
 enum LineKind {
@@ -34,12 +36,18 @@ impl Default for LinesRenderer {
     fn default() -> Self {
         let default_self = Self {
             line_shader: ShaderProgram::new(
-                "src/shaders/line_vertex.glsl",
-                "src/shaders/line_fragment.glsl"
+                Some((
+                    "src/shaders/line_vertex.glsl",
+                    "src/shaders/line_fragment.glsl"
+                )),
+                None,
             ),
             steap_line_shader: ShaderProgram::new(
-                "src/shaders/line_vertex.glsl",
-                "src/shaders/steap_line_fragment.glsl"
+                Some((
+                    "src/shaders/line_vertex.glsl",
+                    "src/shaders/steap_line_fragment.glsl"
+                )),
+                None,
             ),
             canvas: Framebuffer::new(CANVAS_WIDTH, CANVAS_HEIGHT),
             back_color: Color::default(),
@@ -65,17 +73,25 @@ impl LinesRenderer {
 
         match algorithem {
 
-            LineAlgorithem::SlopeInterceptGPU => {
+            LineAlgorithem::SlopeInterceptFS => {
                 self.render_slope_intercept_gpu(lines);
             }
 
             LineAlgorithem::SlopeIntercept => {
-                self.render_slope_intercept(lines);
+                self.render_on_cpu(lines, Self::render_slope_intercept);
+            }
+
+            LineAlgorithem::DDA => {
+                self.render_on_cpu(lines, Self::render_dda);
             }
         }
     }
 
-    pub fn render_slope_intercept(&mut self, lines: &Vec<Line>) {
+    pub fn render_on_cpu(
+        &mut self,
+        lines: &Vec<Line>,
+        line_render_fn: fn(&Line, u16, u16) -> Vec<glm::U16Vec2>
+    ) {
 
         let (tex_width, tex_height) = self.canvas.get_size();
         let size = (tex_width as usize * tex_height as usize) as usize;
@@ -83,64 +99,112 @@ impl LinesRenderer {
 
         for line in lines {
 
-            let (m, b, line_kind) = LinesRenderer::comput_m_b(line);
-            let mut line_pixels;
-            let mut color;
-
-            match line_kind {
-
-                LineKind::Moderate => {
-
-                    color = ColorU8{g: 255, ..ColorU8::default()};
-
-                    let (start, end) = LinesRenderer::x_order_line_ends(line);
-                    let pixels_count = (end.x - start.x + 1.0) as usize;
-
-                    line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
-
-                    for i in 0..line_pixels.len() {
-
-                        let x = i as f32 + start.x;
-                        let y = ((m * x + b) + tex_height as f32 / 2.0).round() as u16;
-                        let x = (x + tex_width as f32 / 2.0) as u16;
-
-                        line_pixels[i] = glm::U16Vec2::new(x,y);
-                    }
-                }
-
-                LineKind::Steep => {
-
-                    color = ColorU8{r: 255, ..ColorU8::default()};
-
-                    let (start, end) = LinesRenderer::y_order_line_ends(line);
-                    let pixels_count = (end.y - start.y + 1.0).abs() as usize;
-
-                    line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
-
-                    for i in 0..line_pixels.len() {
-
-                        let y = i as f32 + start.y;
-                        let x = ((m * y + b) + tex_width as f32 / 2.0).round() as u16;
-                        let y = (y + tex_height as f32 / 2.0) as u16;
-
-                        line_pixels[i] = glm::U16Vec2::new(x, y);
-                    }
-                }
-            }
+            let line_pixels = line_render_fn(&line, tex_width, tex_height);
 
             for pixel_pos in &line_pixels {
 
                 let index: usize = (
-                    pixel_pos.y as usize
-                        * tex_width as usize
-                        + pixel_pos.x as usize
+                      pixel_pos.y as usize
+                    * tex_width as usize
+                    + pixel_pos.x as usize
                 ) as usize;
 
-                texture[index] = color.clone();
+                if index < texture.len() {
+                    texture[index] = ColorU8{r:255, g: 255, b: 255, a:255};
+                }
             }
 
         }
         self.canvas.set_color_data(&texture);
+    }
+
+    pub fn render_dda(
+        line: &Line,
+        tex_width: u16,
+        tex_height: u16,
+    ) -> Vec<glm::U16Vec2> {
+
+        let d_pos = line.end - line.start;
+        let dx = d_pos.x;
+        let dy = d_pos.y;
+        let m;
+
+        if dx.abs() >= dy.abs() {
+            m = dx.abs();
+        }
+        else {
+            m = dy.abs();
+        }
+
+        let dx = dx / m;
+        let dy = dy / m;
+
+        let mut line_pixels = vec![glm::U16Vec2::from_element(0); m.round() as usize];
+
+        let mut x = line.start.x;
+        let mut y = line.start.y;
+
+        for i in 0..line_pixels.len() {
+
+            let tex_x = (x + tex_width as f32 / 2.0).round() as u16;
+            let tex_y = (y + tex_height as f32 / 2.0).round() as u16;
+
+            line_pixels[i] = glm::U16Vec2::new(tex_x, tex_y);
+
+            x += dx;
+            y += dy;
+        }
+
+        line_pixels
+    }
+
+    pub fn render_slope_intercept(
+        line: &Line,
+        tex_width: u16,
+        tex_height: u16,
+    ) -> Vec<glm::U16Vec2> {
+
+        let (m, b, line_kind) = LinesRenderer::comput_m_b(line);
+        let mut line_pixels;
+
+        match line_kind {
+
+            LineKind::Moderate => {
+
+                let (start, end) = LinesRenderer::x_order_line_ends(line);
+                let pixels_count = (end.x - start.x + 1.0) as usize;
+
+                line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
+
+                for i in 0..line_pixels.len() {
+
+                    let x = i as f32 + start.x;
+                    let y = ((m * x + b) + tex_height as f32 / 2.0).round() as u16;
+                    let x = (x + tex_width as f32 / 2.0) as u16;
+
+                    line_pixels[i] = glm::U16Vec2::new(x,y);
+                }
+            }
+
+            LineKind::Steep => {
+
+                let (start, end) = LinesRenderer::y_order_line_ends(line);
+                let pixels_count = (end.y - start.y + 1.0).abs() as usize;
+
+                line_pixels = vec![glm::U16Vec2::from_element(0); pixels_count];
+
+                for i in 0..line_pixels.len() {
+
+                    let y = i as f32 + start.y;
+                    let x = ((m * y + b) + tex_width as f32 / 2.0).round() as u16;
+                    let y = (y + tex_height as f32 / 2.0) as u16;
+
+                    line_pixels[i] = glm::U16Vec2::new(x, y);
+                }
+            }
+        }
+
+        line_pixels
     }
 
     pub fn render_slope_intercept_gpu(&self, lines: &Vec<Line>) {

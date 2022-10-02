@@ -129,10 +129,17 @@ fn render_gui(
             }
 
             if ui.radio(
-                matches!(line_algorithem, LineAlgorithem::SlopeInterceptGPU),
+                matches!(line_algorithem, LineAlgorithem::SlopeInterceptFS),
                 "Slope intercept Fragment shader"
             ).clicked() {
-                *line_algorithem = LineAlgorithem::SlopeInterceptGPU;
+                *line_algorithem = LineAlgorithem::SlopeInterceptFS;
+            }
+
+            if ui.radio(
+                matches!(line_algorithem, LineAlgorithem::DDA),
+                "DDA"
+            ).clicked() {
+                *line_algorithem = LineAlgorithem::DDA;
             }
 
             ui.separator();
