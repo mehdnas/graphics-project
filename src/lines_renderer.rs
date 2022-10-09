@@ -1,5 +1,3 @@
-use std::cmp;
-
 use nalgebra_glm as glm;
 
 use crate::{
@@ -17,6 +15,7 @@ pub enum LineAlgorithem {
     SlopeIntercept,
     SlopeInterceptFS,
     DDA,
+    Bresenham,
 }
 
 enum LineKind {
@@ -84,6 +83,10 @@ impl LinesRenderer {
             LineAlgorithem::DDA => {
                 self.render_on_cpu(lines, Self::render_dda);
             }
+
+            LineAlgorithem::Bresenham => {
+                self.render_on_cpu(lines, Self::render_bresenham);
+            }
         }
     }
 
@@ -116,6 +119,40 @@ impl LinesRenderer {
 
         }
         self.canvas.set_color_data(&texture);
+    }
+
+    pub fn render_bresenham(
+        line: &Line,
+        tex_width: u16,
+        tex_height: u16,
+    ) -> Vec<glm::U16Vec2> {
+
+        let mut x: i32 = line.start.x.round() as i32;
+        let mut y: i32 = line.start.y.round() as i32;
+        let dx: i32 = (line.end.x - line.start.x).abs().round() as i32;
+        let dy: i32 = (line.end.y - line.start.y).round() as i32;
+
+        println!("dx: {}, dy: {}", dx, dy);
+        let mut ne: i32 = 2 * dy - dx;
+
+        let mut line_pixels = Vec::new();
+
+        while x < line.end.x.round() as i32 {
+
+            let tex_x = (x + tex_width as i32 / 2) as u16;
+            let tex_y = (y + tex_height as i32 / 2) as u16;
+            let pos = glm::U16Vec2::new(tex_x, tex_y);
+            line_pixels.push(pos);
+
+            if ne > 0 {
+                y += 1;
+                ne -= 2 * dx;
+            }
+            x += 1;
+            ne += 2 * dy;
+        }
+
+        line_pixels
     }
 
     pub fn render_dda(

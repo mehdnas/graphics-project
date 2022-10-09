@@ -142,6 +142,13 @@ fn render_gui(
                 *line_algorithem = LineAlgorithem::DDA;
             }
 
+            if ui.radio(
+                matches!(line_algorithem, LineAlgorithem::Bresenham),
+                "Bresenham"
+            ).clicked() {
+                *line_algorithem = LineAlgorithem::Bresenham;
+            }
+
             ui.separator();
 
             let mut cursor_pos = gui.get_cursor_pos();
