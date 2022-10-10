@@ -6,6 +6,7 @@ use nalgebra_glm as glm;
 const INFO_LOG_BUFFER_LEN: GLsizei = 1024;
 
 
+#[allow(dead_code)]
 pub struct ShaderProgram {
     vertex_shader_id: Option<GLuint>,
     fragment_shader_id: Option<GLuint>,
@@ -127,8 +128,6 @@ impl ShaderProgram {
 
     pub fn set_uniform_f32(&self, name: &str, float: f32) {
 
-        let cname = std::ffi::CString::new(name).expect("CString new failed");
-
         self.bind();
 
         unsafe {
@@ -166,6 +165,7 @@ impl ShaderProgram {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_uniform_vec3(&self, name: &str, vec: &glm::Vec3) {
 
         self.bind();

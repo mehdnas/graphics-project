@@ -25,6 +25,7 @@ pub struct Screen {
 
 impl Screen {
 
+    #[allow(dead_code)]
     pub fn new(width: u16, height: u16) -> Self {
 
         let shader = ShaderProgram::new(
@@ -82,6 +83,7 @@ impl Screen {
         self.framebuffer.clear(&self.back_color);
     }
 
+    #[allow(dead_code)]
     pub fn set_background_color(&mut self, color: Color) {
         self.back_color = color;
     }

@@ -90,6 +90,7 @@ impl Gui {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_window_size(&self) -> (i32, i32) {
         self.window.get_size()
     }

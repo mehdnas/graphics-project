@@ -154,7 +154,10 @@ fn render_gui(
             let mut cursor_pos = gui.get_cursor_pos();
             transform_pos(&mut cursor_pos, screen);
 
-            ui.label(format!("Cursor position: ({}, {})", cursor_pos.x, cursor_pos.y));
+            ui.label(format!(
+                "Cursor position: ({}, {})",
+                cursor_pos.x as i32, cursor_pos.y as i32
+            ));
 
             ui.separator();
 
@@ -200,6 +203,7 @@ fn transform_pos(pos: &mut glm::Vec2, screen: &Screen) {
     pos.y = result.y;
 }
 
+#[allow(dead_code)]
 fn normalize_pos(pos: &mut glm::Vec2) {
     pos.x = (pos.x * 2_f32) / WINDOW_WIDTH as f32;
     pos.y = (pos.y * 2_f32) / WINDOW_HEIGHT as f32;

@@ -1,4 +1,4 @@
-use gl::types::{GLuint, GLint};
+use gl::types::*;
 
 use crate::{texture::{Texture, TexType}, common::{WINDOW_WIDTH, WINDOW_HEIGHT, Color, ColorU8}};
 

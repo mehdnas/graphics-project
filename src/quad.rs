@@ -8,6 +8,7 @@ use crate::{
     shader_program::ShaderProgram,
 };
 
+#[allow(dead_code)]
 pub struct Quad {
     vertices: [Vertex; 4],
     indices: [u32; 6],

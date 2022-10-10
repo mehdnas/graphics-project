@@ -1,3 +1,4 @@
+
 use nalgebra_glm as glm;
 
 use crate::{
@@ -127,29 +128,104 @@ impl LinesRenderer {
         tex_height: u16,
     ) -> Vec<glm::U16Vec2> {
 
-        let mut x: i32 = line.start.x.round() as i32;
-        let mut y: i32 = line.start.y.round() as i32;
-        let dx: i32 = (line.end.x - line.start.x).abs().round() as i32;
-        let dy: i32 = (line.end.y - line.start.y).round() as i32;
+        let xi = line.start.x.round() as i32;
+        let yi = line.start.y.round() as i32;
+        let xf = line.start.x.round() as i32;
+        let yf = line.start.y.round() as i32;
 
-        println!("dx: {}, dy: {}", dx, dy);
-        let mut ne: i32 = 2 * dy - dx;
+        if (yf - yi).abs() < (xf - xi).abs() {
+            if xi > xf {
+                Self::bresenham_low(xf, yf, xi, yi, tex_width, tex_height)
+            } else {
+                Self::bresenham_low(xi, yi, xf, yf, tex_width, tex_height)
+            }
+        } else {
+            if yi > yf {
+                Self::bresenham_high(xf, yf, xi, yi, tex_width, tex_height)
+            } else {
+                Self::bresenham_high(xi, yi, xf, yf, tex_width, tex_height)
+            }
+        }
 
-        let mut line_pixels = Vec::new();
+    }
 
-        while x < line.end.x.round() as i32 {
+    fn bresenham_low(
+        xi: i32, yi: i32,
+        xf: i32, yf: i32,
+        tex_width: u16,
+        tex_height: u16,
+    ) -> Vec<glm::U16Vec2> {
+
+        let mut line_pixels = vec![
+            glm::U16Vec2::from_element(0);
+            (xf - xi + 1) as usize
+        ];
+
+        let dx = xf - xi;
+        let dy = yf - yi;
+        let (dy, ys) = if dy < 0 {(-dy, -1)} else {(dy, 1)};
+
+        let mut e = (2 * dy) - dx;
+
+        let mut y = yi;
+        let mut x = xi;
+
+        for i in 0..line_pixels.len() {
+
+            println!("low");
 
             let tex_x = (x + tex_width as i32 / 2) as u16;
             let tex_y = (y + tex_height as i32 / 2) as u16;
-            let pos = glm::U16Vec2::new(tex_x, tex_y);
-            line_pixels.push(pos);
+            line_pixels[i] = glm::U16Vec2::new(tex_x, tex_y);
 
-            if ne > 0 {
-                y += 1;
-                ne -= 2 * dx;
+            if e > 0 {
+                y = y + ys;
+                e = e + (2 * (dy - dx));
+            } else {
+                e = e + 2 * dy;
             }
             x += 1;
-            ne += 2 * dy;
+        }
+
+        line_pixels
+    }
+
+    fn bresenham_high(
+        xi: i32, yi: i32,
+        xf: i32, yf: i32,
+        tex_width: u16,
+        tex_height: u16,
+    ) -> Vec<glm::U16Vec2> {
+
+        let mut line_pixels = vec![
+            glm::U16Vec2::from_element(0);
+            (yf - yi + 1) as usize
+        ];
+
+        let dx = xf - xi;
+        let dy = yf - yi;
+        let (dx, xs) = if dx < 0 {(-dx, -1)} else {(dx, 1)};
+
+        let mut e = (2 * dx) - dy;
+
+        let mut y = yi;
+        let mut x = xi;
+
+        for i in 0..line_pixels.len() {
+
+            println!("high");
+
+            let tex_x = (x + tex_width as i32 / 2) as u16;
+            let tex_y = (y + tex_height as i32 / 2) as u16;
+            line_pixels[i] = glm::U16Vec2::new(tex_x, tex_y);
+
+            if e > 0 {
+                x = x + xs;
+                e = e + (2 * (dx - dy));
+            } else {
+                e = e + 2 * dx;
+            }
+            y += 1;
         }
 
         line_pixels
@@ -168,8 +244,7 @@ impl LinesRenderer {
 
         if dx.abs() >= dy.abs() {
             m = dx.abs();
-        }
-        else {
+        } else {
             m = dy.abs();
         }
 

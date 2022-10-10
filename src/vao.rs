@@ -85,6 +85,7 @@ impl Vao {
         }
     }
 
+    #[allow(dead_code)]
     pub fn unbind() {
         unsafe {
             gl::BindVertexArray(0);
