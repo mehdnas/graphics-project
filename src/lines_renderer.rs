@@ -130,8 +130,8 @@ impl LinesRenderer {
 
         let xi = line.start.x.round() as i32;
         let yi = line.start.y.round() as i32;
-        let xf = line.start.x.round() as i32;
-        let yf = line.start.y.round() as i32;
+        let xf = line.end.x.round() as i32;
+        let yf = line.end.y.round() as i32;
 
         if (yf - yi).abs() < (xf - xi).abs() {
             if xi > xf {
@@ -172,8 +172,6 @@ impl LinesRenderer {
 
         for i in 0..line_pixels.len() {
 
-            println!("low");
-
             let tex_x = (x + tex_width as i32 / 2) as u16;
             let tex_y = (y + tex_height as i32 / 2) as u16;
             line_pixels[i] = glm::U16Vec2::new(tex_x, tex_y);
@@ -212,8 +210,6 @@ impl LinesRenderer {
         let mut x = xi;
 
         for i in 0..line_pixels.len() {
-
-            println!("high");
 
             let tex_x = (x + tex_width as i32 / 2) as u16;
             let tex_y = (y + tex_height as i32 / 2) as u16;
