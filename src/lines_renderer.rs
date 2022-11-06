@@ -254,8 +254,8 @@ impl LinesRenderer {
 
         for i in 0..line_pixels.len() {
 
-            let tex_x = (x + tex_width as f32 / 2.0).round() as u16;
-            let tex_y = (y + tex_height as f32 / 2.0).round() as u16;
+            let tex_x = (x + tex_width as f32 / 2.0) as u16;
+            let tex_y = (y + tex_height as f32 / 2.0) as u16;
 
             line_pixels[i] = glm::U16Vec2::new(tex_x, tex_y);
 
@@ -287,10 +287,13 @@ impl LinesRenderer {
                 for i in 0..line_pixels.len() {
 
                     let x = i as f32 + start.x;
-                    let y = ((m * x + b) + tex_height as f32 / 2.0).round() as u16;
-                    let x = (x + tex_width as f32 / 2.0) as u16;
+                    let y = (m * x + b).round() as u16;
+                    let x = x.round() as u16;
 
-                    line_pixels[i] = glm::U16Vec2::new(x,y);
+                    line_pixels[i] = glm::U16Vec2::new(
+                        x + tex_width / 2,
+                        y + tex_height / 2
+                    );
                 }
             }
 
@@ -304,10 +307,13 @@ impl LinesRenderer {
                 for i in 0..line_pixels.len() {
 
                     let y = i as f32 + start.y;
-                    let x = ((m * y + b) + tex_width as f32 / 2.0).round() as u16;
-                    let y = (y + tex_height as f32 / 2.0) as u16;
+                    let x = (m * y + b).round() as u16;
+                    let y = y.round() as u16;
 
-                    line_pixels[i] = glm::U16Vec2::new(x, y);
+                    line_pixels[i] = glm::U16Vec2::new(
+                        x + tex_width / 2,
+                        y + tex_height / 2
+                    );
                 }
             }
         }
