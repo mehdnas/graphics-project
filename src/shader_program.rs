@@ -8,72 +8,32 @@ const INFO_LOG_BUFFER_LEN: GLsizei = 1024;
 
 #[allow(dead_code)]
 pub struct ShaderProgram {
-    vertex_shader_id: Option<GLuint>,
-    fragment_shader_id: Option<GLuint>,
-    compute_shader_id: Option<GLuint>,
+    vertex_shader_id: GLuint,
+    fragment_shader_id: GLuint,
     program_id: GLuint,
 }
 
 impl ShaderProgram {
 
     pub fn new(
-        graphics_shaders_paths: Option<(&str, &str)>,
-        compute_shader_path: Option<&str>,
+        vertex_shader_path: &str, fragment_shader_path: &str
     ) -> Self {
 
-        let vertex_shader_id: Option<GLuint>;
-        let fragment_shader_id: Option<GLuint>;
-        let compute_shader_id: Option<GLuint>;
+        let vertex_shader_id: GLuint;
+        let fragment_shader_id: GLuint;
         let program_id: GLuint;
-
-        if matches!(graphics_shaders_paths, None) && matches!(compute_shader_path, None) {
-            panic!("Neither graphics shaders nor compute shader paths were given");
-        }
 
         unsafe {
             program_id = gl::CreateProgram();
         }
 
-        match graphics_shaders_paths {
+        vertex_shader_id = Self::create_shader(vertex_shader_path, gl::VERTEX_SHADER);
+        fragment_shader_id = Self::create_shader(fragment_shader_path, gl::FRAGMENT_SHADER);
 
-            Some((vs_path, fs_path)) => {
-
-                let vs_id = Self::create_shader(vs_path, gl::VERTEX_SHADER);
-                let fs_id = Self::create_shader(fs_path, gl::FRAGMENT_SHADER);
-
-                unsafe {
-                    gl::AttachShader(program_id, vs_id);
-                    gl::AttachShader(program_id, fs_id);
-                }
-
-                vertex_shader_id = Some(vs_id);
-                fragment_shader_id = Some(fs_id);
-            }
-
-            None => {
-                vertex_shader_id = None;
-                fragment_shader_id = None;
-            }
-
+        unsafe {
+            gl::AttachShader(program_id, vertex_shader_id);
+            gl::AttachShader(program_id, fragment_shader_id);
         }
-
-        match compute_shader_path {
-
-            Some(path) => {
-
-                let cs_id = Self::create_shader(path, gl::COMPUTE_SHADER);
-
-                unsafe {
-                    gl::AttachShader(program_id, cs_id);
-                }
-
-                compute_shader_id = Some(cs_id);
-            }
-
-            None => {
-                compute_shader_id = None;
-            }
-        };
 
         unsafe {
             gl::LinkProgram(program_id);
@@ -98,7 +58,6 @@ impl ShaderProgram {
         Self {
             vertex_shader_id,
             fragment_shader_id,
-            compute_shader_id,
             program_id,
         }
     }
