@@ -8,4 +8,5 @@ edition = "2021"
 gl = "0.14"
 egui_glfw_gl = "0.13"
 nalgebra-glm = "0.1"
+image = "0.24"
 

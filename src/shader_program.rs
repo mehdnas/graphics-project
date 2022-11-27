@@ -194,20 +194,8 @@ impl Drop for ShaderProgram {
     fn drop(&mut self) {
 
         unsafe {
-            match self.vertex_shader_id {
-
-                Some(vs_id) => gl::DeleteShader(vs_id),
-
-                None => {}
-            }
-
-            match self.fragment_shader_id {
-
-                Some(fs_id) => gl::DeleteShader(fs_id),
-
-                None => {}
-            }
-
+            gl::DeleteShader(self.vertex_shader_id);
+            gl::DeleteShader(self.fragment_shader_id);
             gl::DeleteProgram(self.program_id);
         }
     }

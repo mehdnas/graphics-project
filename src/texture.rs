@@ -2,8 +2,6 @@ use std::ffi::c_void;
 
 use gl::types::{GLuint, GLint, GLenum};
 
-use nalgebra_glm as glm;
-
 use crate::common::ColorU8;
 
 #[derive(PartialEq)]
@@ -21,18 +19,27 @@ pub struct Texture {
 
 impl Default for Texture {
     fn default() -> Self {
-        Self::new_blank(16, 16, TexType::Color)
+        Self::new(16, 16, TexType::Color, None)
     }
 }
 
 impl Texture {
 
-    pub fn new_blank(width: u16, height: u16, tex_type: TexType) -> Self {
+    pub fn new(
+        width: u16, height: u16, tex_type: TexType,
+        pixels: Option<&Vec<(u8, u8, u8, u8)>>
+    ) -> Self {
 
         let mut id: GLuint = 0;
         let (internal_format, format, data_type) = Texture::get_formats(&tex_type);
 
         unsafe {
+
+            let pixel_ptr = match pixels {
+                Some(data) =>data.as_ptr() as *const c_void,
+                None => 0 as *const c_void,
+            };
+
             gl::GenTextures(1, &mut id);
             gl::BindTexture(gl::TEXTURE_2D, id);
 
@@ -45,7 +52,7 @@ impl Texture {
                 0,
                 format,
                 data_type,
-                0 as *const c_void
+                pixel_ptr,
             );
 
             gl::TexParameteri(

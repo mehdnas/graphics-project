@@ -26,9 +26,9 @@ impl Framebuffer {
     pub fn new(width: u16, height: u16) -> Self {
 
         let mut id: GLuint = 0;
-        let color_attachment = Texture::new_blank(width, height, TexType::Color);
-        let depth_stencil_attachment = Texture::new_blank(
-            width, height, TexType::DepthStencil
+        let color_attachment = Texture::new(width, height, TexType::Color, None);
+        let depth_stencil_attachment = Texture::new(
+            width, height, TexType::DepthStencil, None
         );
 
         unsafe {

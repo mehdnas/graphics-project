@@ -29,7 +29,7 @@ impl Screen {
     pub fn new(width: u16, height: u16) -> Self {
 
         let shader = ShaderProgram::new(
-            Some((VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC)), None
+            VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC
         );
         Self {
             scale: 1.0,
@@ -102,7 +102,7 @@ impl Default for Screen {
     fn default() -> Self {
 
         let shader = ShaderProgram::new(
-            Some((VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC)), None
+            VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC
         );
 
         Self {

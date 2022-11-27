@@ -11,9 +11,10 @@ mod texture;
 mod screen;
 mod figure;
 
-use nalgebra_glm as glm;
+use image::{io::Reader, DynamicImage};
 
 use screen::Screen;
+use texture::Texture;
 
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
 use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
@@ -51,11 +52,15 @@ fn main() {
     let mut start = Instant::now();
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
+    let texture = read_texture("car.png");
+
     while !gui.should_close_window() {
 
         gui.start_frame();
 
         screen.clear();
+
+        texture.bind();
 
         screen.render_used_texture();
 
@@ -80,3 +85,27 @@ fn render_gui(
 
 }
 
+fn read_texture(path: &str) -> Texture {
+
+    let mut image = Reader::open(path)
+        .expect("ERROR: Bad image path.")
+        .with_guessed_format()
+        .expect("ERROR: Probably bad format.")
+        .decode()
+        .expect("ERROR: Could not decode image.");
+
+    match image {
+        DynamicImage::ImageRgba8(buffer) => {
+            let width = buffer.width() as u16;
+            let height = buffer.height() as u16;
+            let mut pixels: Vec<(u8, u8, u8, u8)> = Vec::new();
+            for row in buffer.rows().rev() {
+                for pixel in row {
+                    pixels.push((pixel[0], pixel[1], pixel[2], pixel[3]))
+                }
+            }
+            Texture::new(width, height, texture::TexType::Color, Some(&pixels))
+        },
+        _ => panic!("Unexpected image format."),
+    }
+}
