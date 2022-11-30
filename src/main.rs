@@ -11,6 +11,9 @@ mod texture;
 mod screen;
 mod figure;
 
+use egui_glfw_gl::egui;
+use egui::TextBuffer;
+use egui::widgets;
 use figure::Figure;
 use image::{io::Reader, DynamicImage};
 
@@ -21,6 +24,19 @@ use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
 use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
 use ui::Gui;
 use nalgebra_glm as glm;
+
+struct TransformationsInput {
+    pub scale_str: String,
+    pub shearing_x_str: String,
+    pub shearing_y_str: String,
+    pub rotations_str: String,
+    pub position_x_str: String,
+    pub position_y_str: String,
+    pub scale: f32,
+    pub shearing: glm::Vec2,
+    pub rotation: f32,
+    pub position: glm::Vec2,
+}
 
 extern "system" fn gl_debug_proc(
     _source: GLenum,
@@ -54,6 +70,18 @@ fn main() {
     let mut start = Instant::now();
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
+    let mut transformations = TransformationsInput{
+        scale_str: String::from("1.0"),
+        shearing_x_str: String::from("0.0"),
+        shearing_y_str: String::from("0.0"),
+        rotations_str: String::from("0.0"),
+        position_x_str: String::from("0.0"),
+        position_y_str: String::from("0.0"),
+        scale: 1.0,
+        shearing: glm::vec2(0.0, 0.0),
+        rotation: 0.0,
+        position: glm::vec2(0.0, 0.0),
+    };
     let texture = read_texture("car.png");
     let mut figure = Figure::new(texture);
 
@@ -66,9 +94,9 @@ fn main() {
         figure.render();
 
         figure.set_scale(0.5);
-        figure.set_position(&glm::vec2(0.5, 0.5));
+        figure.set_position(&transformations.position);
 
-        render_gui(&gui);
+        render_gui(&gui, &mut transformations);
 
         gui.end_frame();
 
@@ -78,10 +106,29 @@ fn main() {
 }
 
 fn render_gui(
-    gui: &Gui,
+    gui: &Gui, transformations: &mut TransformationsInput
 ) {
 
         gui.show(|ui| {
+
+            ui.label("Trnslation:");
+
+            ui.horizontal(|ui| {
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("x:");
+                ui.text_edit_singleline(&mut transformations.position_x_str);
+                if let Result::Ok(x) = transformations.position_x_str.parse::<f32>() {
+                    transformations.position.x = x / WINDOW_WIDTH as f32;
+                }
+
+                ui.separator();
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("y:");
+                ui.text_edit_singleline(&mut transformations.position_y_str);
+                if let Result::Ok(y) = transformations.position_y_str.parse::<f32>() {
+                    transformations.position.y = y / WINDOW_HEIGHT as f32;
+                }
+            });
 
             ui.separator();
 
@@ -91,7 +138,7 @@ fn render_gui(
 
 fn read_texture(path: &str) -> Texture {
 
-    let mut image = Reader::open(path)
+    let image = Reader::open(path)
         .expect("ERROR: Bad image path.")
         .with_guessed_format()
         .expect("ERROR: Probably bad format.")
