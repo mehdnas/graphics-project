@@ -11,6 +11,7 @@ mod texture;
 mod screen;
 mod figure;
 
+use figure::Figure;
 use image::{io::Reader, DynamicImage};
 
 use screen::Screen;
@@ -19,6 +20,7 @@ use texture::Texture;
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
 use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
 use ui::Gui;
+use nalgebra_glm as glm;
 
 extern "system" fn gl_debug_proc(
     _source: GLenum,
@@ -53,6 +55,7 @@ fn main() {
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
     let texture = read_texture("car.png");
+    let mut figure = Figure::new(texture);
 
     while !gui.should_close_window() {
 
@@ -60,9 +63,10 @@ fn main() {
 
         screen.clear();
 
-        texture.bind();
+        figure.render();
 
-        screen.render_used_texture();
+        figure.set_scale(0.5);
+        figure.set_position(&glm::vec2(0.5, 0.5));
 
         render_gui(&gui);
 

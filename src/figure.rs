@@ -3,7 +3,7 @@ use nalgebra_glm as glm;
 
 use crate::{
     quad::Quad,
-    texture::Texture,
+    texture::{Texture},
     shader_program::ShaderProgram,
 };
 
@@ -14,6 +14,8 @@ const TRANSFORM_UNIFORM_NAME: &str = "transform";
 pub struct Figure {
     quad: Quad,
     shader: ShaderProgram,
+    texture: Texture,
+    base_transform: glm::Mat3,
     scale: f32,
     shearing: glm::Vec2,
     rotation: f32,
@@ -25,6 +27,8 @@ impl Default for Figure {
         Self {
             quad: Quad::default(),
             shader: ShaderProgram::new(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC),
+            texture: Texture::default(),
+            base_transform: glm::identity(),
             scale: 1.0,
             shearing: glm::vec2(0.0, 0.0),
             rotation: 0.0,
@@ -34,6 +38,21 @@ impl Default for Figure {
 }
 
 impl Figure {
+
+    pub fn new(texture: Texture) -> Self {
+
+        let base_transform = glm::diagonal3x3(&glm::vec3(
+            1.0,
+            texture.get_height() as f32 / texture.get_width() as f32,
+            1.0
+        ));
+
+        Self {
+            texture,
+            base_transform,
+            ..Default::default()
+        }
+    }
 
     pub fn get_position(&self) -> glm::Vec2 {
         self.position.clone()
@@ -67,13 +86,14 @@ impl Figure {
         self.shearing = *new_shrearing;
     }
 
-    pub fn render(&self, texture: &Texture) {
-        texture.bind();
+    pub fn render(&self) {
+        self.texture.bind();
         let mut transform = glm::diagonal3x3(&glm::vec3(self.scale, self.scale, 1.0));
         transform = glm::shear2d_x(&transform, self.shearing.x);
         transform = glm::shear2d_y(&transform, self.shearing.y);
         transform = glm::rotate2d(&transform, self.rotation);
         transform = glm::translate2d(&transform, &self.position);
+        transform = transform * self.base_transform;
         self.shader.set_uniform_mat3(TRANSFORM_UNIFORM_NAME, &transform);
         self.quad.render(&self.shader);
     }

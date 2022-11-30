@@ -75,6 +75,14 @@ impl Texture {
         }
     }
 
+    pub fn get_width(&self) -> u16 {
+        return self.width;
+    }
+
+    pub fn get_height(&self) -> u16 {
+        return self.height;
+    }
+
     pub fn bind(&self) {
         unsafe {
             gl::BindTexture(
