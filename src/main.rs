@@ -26,13 +26,14 @@ use ui::Gui;
 use nalgebra_glm as glm;
 
 struct TransformationsInput {
-    pub scale_str: String,
+    pub scale_x_str: String,
+    pub scale_y_str: String,
     pub shearing_x_str: String,
     pub shearing_y_str: String,
     pub rotations_str: String,
     pub position_x_str: String,
     pub position_y_str: String,
-    pub scale: f32,
+    pub scale: glm::Vec2,
     pub shearing: glm::Vec2,
     pub rotation: f32,
     pub position: glm::Vec2,
@@ -71,13 +72,14 @@ fn main() {
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
     let mut transformations = TransformationsInput{
-        scale_str: String::from("1.0"),
+        scale_x_str: String::from("1.0"),
+        scale_y_str: String::from("1.0"),
         shearing_x_str: String::from("0.0"),
         shearing_y_str: String::from("0.0"),
         rotations_str: String::from("0.0"),
         position_x_str: String::from("0.0"),
         position_y_str: String::from("0.0"),
-        scale: 1.0,
+        scale: glm::vec2(1.0, 1.0),
         shearing: glm::vec2(0.0, 0.0),
         rotation: 0.0,
         position: glm::vec2(0.0, 0.0),
@@ -91,10 +93,12 @@ fn main() {
 
         screen.clear();
 
-        figure.render();
-
-        figure.set_scale(0.5);
+        figure.set_scale(transformations.scale);
         figure.set_position(&transformations.position);
+        figure.set_shearing(&transformations.shearing);
+        figure.set_rotation(transformations.rotation);
+
+        figure.render();
 
         render_gui(&gui, &mut transformations);
 
@@ -132,6 +136,57 @@ fn render_gui(
 
             ui.separator();
 
+            ui.label("Scaling:");
+
+            ui.horizontal(|ui| {
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("x:");
+                ui.text_edit_singleline(&mut transformations.scale_x_str);
+                if let Result::Ok(x) = transformations.scale_x_str.parse::<f32>() {
+                    transformations.scale.x = x;
+                }
+
+                ui.separator();
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("y:");
+                ui.text_edit_singleline(&mut transformations.scale_y_str);
+                if let Result::Ok(y) = transformations.scale_y_str.parse::<f32>() {
+                    transformations.scale.y = y;
+                }
+            });
+
+            ui.separator();
+
+            ui.label("Shearing:");
+
+            ui.horizontal(|ui| {
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("x:");
+                ui.text_edit_singleline(&mut transformations.shearing_x_str);
+                if let Result::Ok(x) = transformations.shearing_x_str.parse::<f32>() {
+                    transformations.shearing.x = x;
+                }
+
+                ui.separator();
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("y:");
+                ui.text_edit_singleline(&mut transformations.shearing_y_str);
+                if let Result::Ok(y) = transformations.shearing_y_str.parse::<f32>() {
+                    transformations.shearing.y = y;
+                }
+            });
+
+            ui.separator();
+
+            ui.horizontal(|ui| {
+                ui.set_max_size(egui::vec2(100.0, 10.0));
+                ui.label("Rotation:");
+                ui.text_edit_singleline(&mut transformations.rotations_str);
+                if let Result::Ok(r) = transformations.rotations_str.parse::<f32>() {
+                    transformations.rotation = (r * std::f64::consts::PI as f32) / 180.0;
+                }
+            });
+
         });
 
 }
@@ -151,7 +206,7 @@ fn read_texture(path: &str) -> Texture {
             let height = buffer.height() as u16;
             let mut pixels: Vec<(u8, u8, u8, u8)> = Vec::new();
             for row in buffer.rows().rev() {
-                for pixel in row {
+                for pixel in row.rev() {
                     pixels.push((pixel[0], pixel[1], pixel[2], pixel[3]))
                 }
             }
