@@ -42,8 +42,8 @@ impl Figure {
     pub fn new(texture: Texture) -> Self {
 
         let base_transform = glm::diagonal3x3(&glm::vec3(
+            1.0, //texture.get_width() as f32 / texture.get_height() as f32,
             1.0,
-            texture.get_height() as f32 / texture.get_width() as f32,
             1.0
         ));
 

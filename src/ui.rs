@@ -26,11 +26,7 @@ pub struct Gui {
 
 impl Gui {
 
-    pub fn new(
-        width: u32,
-        height: u32,
-        title: &str,
-    ) -> Self {
+    pub fn new(width: u32, height: u32, title: &str) -> Self {
 
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 

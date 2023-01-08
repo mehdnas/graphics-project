@@ -66,10 +66,7 @@ fn main() {
         //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
-    let mut screen = Screen::default();
-
-    let mut start = Instant::now();
-    let mut dt = Duration::from_secs_f32(1.0 / 60.0);
+    let screen = Screen::default();
 
     let mut transformations = TransformationsInput{
         scale_x_str: String::from("1.0"),
@@ -103,6 +100,21 @@ fn main() {
         render_gui(&gui, &mut transformations);
 
         gui.end_frame();
+    }
+}
+
+fn animation(gui: &mut Gui, figure: &mut Figure) {
+
+    let mut start = Instant::now();
+    let mut dt = Duration::from_secs_f32(1.0 / 60.0);
+
+    loop {
+
+        gui.start_frame();
+
+
+
+        gui.end_frame();
 
         dt = start.elapsed();
         start = Instant::now();
@@ -115,7 +127,7 @@ fn render_gui(
 
         gui.show(|ui| {
 
-            ui.label("Trnslation:");
+            ui.label("Translation:");
 
             ui.horizontal(|ui| {
                 ui.set_max_size(egui::vec2(100.0, 10.0));
