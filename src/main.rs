@@ -84,11 +84,18 @@ fn main() {
     let texture = read_texture("car.png");
     let mut figure = Figure::new(texture);
 
+    let mut show_animation = false;
+
     while !gui.should_close_window() {
 
         gui.start_frame();
 
         screen.clear();
+
+        if show_animation {
+            animation(&mut gui, &mut figure);
+            show_animation = false;
+        }
 
         figure.set_scale(transformations.scale);
         figure.set_position(&transformations.position);
@@ -97,7 +104,7 @@ fn main() {
 
         figure.render();
 
-        render_gui(&gui, &mut transformations);
+        render_gui(&gui, &mut transformations, &mut show_animation);
 
         gui.end_frame();
     }
@@ -108,11 +115,34 @@ fn animation(gui: &mut Gui, figure: &mut Figure) {
     let mut start = Instant::now();
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
-    loop {
+    figure.set_position(&glm::vec2(
+        -((WINDOW_HEIGHT - 100) as f32 / WINDOW_HEIGHT as f32),
+        -((WINDOW_WIDTH - 100) as f32 / WINDOW_WIDTH as f32)
+    ));
+
+    figure.set_scale(glm::vec2(
+        100.0 / WINDOW_HEIGHT as f32,
+        100.0 / WINDOW_WIDTH as f32
+    ));
+
+    let mut end_animation = false;
+
+    let mut acceleration = 0.0;
+    let mut speed = 0.0;
+
+    while !end_animation && !gui.should_close_window() {
 
         gui.start_frame();
 
+        figure.render();
 
+        let position = 
+
+        animation_gui(gui, &mut end_animation);
+
+        figure.set_position(&(figure.get_position() + glm::vec2(
+            (speed / WINDOW_WIDTH as f32) * dt.as_secs_f32(), 0.0
+        )));
 
         gui.end_frame();
 
@@ -121,8 +151,17 @@ fn animation(gui: &mut Gui, figure: &mut Figure) {
     }
 }
 
+fn animation_gui(gui: &Gui, end_animation: &mut bool) {
+
+    gui.show(|ui| {
+        if ui.button("End animation").clicked() {
+            *end_animation = true;
+        }
+    });
+}
+
 fn render_gui(
-    gui: &Gui, transformations: &mut TransformationsInput
+    gui: &Gui, transformations: &mut TransformationsInput, show_animation: &mut bool
 ) {
 
         gui.show(|ui| {
@@ -199,6 +238,11 @@ fn render_gui(
                 }
             });
 
+            ui.separator();
+
+            if ui.button("show_animation").clicked() {
+                *show_animation = true;
+            }
         });
 
 }
