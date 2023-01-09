@@ -127,22 +127,26 @@ fn animation(gui: &mut Gui, figure: &mut Figure) {
 
     let mut end_animation = false;
 
-    let mut acceleration = 0.0;
+    let acceleration = 0.001;
     let mut speed = 0.0;
+    let mut position = 0.0;
 
     while !end_animation && !gui.should_close_window() {
 
         gui.start_frame();
 
-        figure.render();
-
-        let position = 
+        speed += dt.as_secs_f32() * acceleration;
+        position += dt.as_secs_f32() * speed;
 
         animation_gui(gui, &mut end_animation);
 
         figure.set_position(&(figure.get_position() + glm::vec2(
-            (speed / WINDOW_WIDTH as f32) * dt.as_secs_f32(), 0.0
+            position, 0.0
         )));
+
+        figure.set_shearing(&glm::vec2(speed * 60.0, speed * 30.0));
+
+        figure.render();
 
         gui.end_frame();
 
