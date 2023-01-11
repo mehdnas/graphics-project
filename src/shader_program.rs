@@ -85,6 +85,20 @@ impl ShaderProgram {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn set_uniform_u32(&self, name: &str, value: u32) {
+
+        self.bind();
+
+        unsafe {
+            gl::Uniform1ui(
+                self.get_uniform_location(name),
+                value
+            );
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn set_uniform_f32(&self, name: &str, float: f32) {
 
         self.bind();
@@ -97,6 +111,7 @@ impl ShaderProgram {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_uniform_mat3(&self, name: &str, mat: &glm::Mat3) {
 
         self.bind();
@@ -111,6 +126,7 @@ impl ShaderProgram {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_uniform_vec2(&self, name: &str, vec: &glm::Vec2) {
 
         self.bind();

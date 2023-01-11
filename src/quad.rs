@@ -20,10 +20,10 @@ impl Default for Quad {
     fn default() -> Self {
 
         let vertices: [Vertex; 4] = [
-            Vertex{pos: (-1.,  1.), tex_coord: ( 0.,  1.)},
+            Vertex{pos: (-2.,  1.), tex_coord: ( 0.,  1.)},
             Vertex{pos: ( 1.,  1.), tex_coord: ( 1.,  1.)},
             Vertex{pos: ( 1., -1.), tex_coord: ( 1.,  0.)},
-            Vertex{pos: (-1., -1.), tex_coord: ( 0.,  0.)},
+            Vertex{pos: (-2., -1.), tex_coord: ( 0.,  0.)},
         ];
 
         let indices: [u32; 6] = [0, 1, 2, 0, 2, 3];
@@ -39,6 +39,21 @@ impl Default for Quad {
 }
 
 impl Quad {
+
+    pub fn from_vertex_positions(vpos: [(f32, f32); 4]) -> Self {
+
+        let vertices: [Vertex; 4] = [
+            Vertex{pos: vpos[0], tex_coord: ( 0.,  1.)},
+            Vertex{pos: vpos[1], tex_coord: ( 1.,  1.)},
+            Vertex{pos: vpos[2], tex_coord: ( 1.,  0.)},
+            Vertex{pos: vpos[3], tex_coord: ( 0.,  0.)},
+        ];
+
+        Self {
+            vertices,
+            ..Default::default()
+        }
+    }
 
     pub fn render(&self, shader_program: &ShaderProgram) {
 

@@ -12,10 +12,10 @@ mod screen;
 mod figure;
 
 use egui_glfw_gl::egui;
-use egui::TextBuffer;
-use egui::widgets;
+use egui_glfw_gl::glfw;
 use figure::Figure;
 use image::{io::Reader, DynamicImage};
+use nalgebra_glm as glm;
 
 use screen::Screen;
 use texture::Texture;
@@ -23,20 +23,12 @@ use texture::Texture;
 use gl::{self, types::{GLenum, GLuint, GLsizei, GLchar}};
 use common::{WINDOW_WIDTH, WINDOW_HEIGHT};
 use ui::Gui;
-use nalgebra_glm as glm;
 
-struct TransformationsInput {
-    pub scale_x_str: String,
-    pub scale_y_str: String,
-    pub shearing_x_str: String,
-    pub shearing_y_str: String,
-    pub rotations_str: String,
-    pub position_x_str: String,
-    pub position_y_str: String,
-    pub scale: glm::Vec2,
-    pub shearing: glm::Vec2,
-    pub rotation: f32,
-    pub position: glm::Vec2,
+struct ParamsInput {
+    max_iters_str: String,
+    max_iters: u32,
+    iterations: u32,
+    color_jump: u32,
 }
 
 extern "system" fn gl_debug_proc(
@@ -66,25 +58,24 @@ fn main() {
         //gl::Enable(gl::DEBUG_OUTPUT);
     }
 
-    let screen = Screen::default();
+    let mut screen = Screen::default();
 
-    let mut transformations = TransformationsInput{
-        scale_x_str: String::from("1.0"),
-        scale_y_str: String::from("1.0"),
-        shearing_x_str: String::from("0.0"),
-        shearing_y_str: String::from("0.0"),
-        rotations_str: String::from("0.0"),
-        position_x_str: String::from("0.0"),
-        position_y_str: String::from("0.0"),
-        scale: glm::vec2(1.0, 1.0),
-        shearing: glm::vec2(0.0, 0.0),
-        rotation: 0.0,
-        position: glm::vec2(0.0, 0.0),
+    let mut params_input = ParamsInput{
+        max_iters_str: String::from("10000"),
+        max_iters: 10000,
+        iterations: 1000,
+        color_jump: 100,
     };
-    let texture = read_texture("car.png");
-    let mut figure = Figure::new(texture);
+    let move_speed = glm::Vec2::new(
+        WINDOW_WIDTH as f32 / 500.0, WINDOW_HEIGHT as f32 / 500.0
+    );
+    let mut figure = Figure::new();
+    let mut scale = figure.get_scale();
 
     let mut show_animation = false;
+
+    let mut start = Instant::now();
+    let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
     while !gui.should_close_window() {
 
@@ -92,61 +83,19 @@ fn main() {
 
         screen.clear();
 
-        if show_animation {
-            animation(&mut gui, &mut figure);
-            show_animation = false;
-        }
+        let scroll_amount = gui.consume_scroll_amount();
+        scale = scale + glm::Vec2::from_element(scroll_amount as f32 * scale.x * 0.1);
+        figure.set_scale(scale);
 
-        figure.set_scale(transformations.scale);
-        figure.set_position(&transformations.position);
-        figure.set_shearing(&transformations.shearing);
-        figure.set_rotation(transformations.rotation);
+        let dpos = get_move_deltas(&gui, &dt, &move_speed) / scale.x;
+        figure.set_position(&(figure.get_position() + dpos));
 
-        figure.render();
-
-        render_gui(&gui, &mut transformations, &mut show_animation);
-
-        gui.end_frame();
-    }
-}
-
-fn animation(gui: &mut Gui, figure: &mut Figure) {
-
-    let mut start = Instant::now();
-    let mut dt = Duration::from_secs_f32(1.0 / 60.0);
-
-    figure.set_position(&glm::vec2(
-        -((WINDOW_HEIGHT - 100) as f32 / WINDOW_HEIGHT as f32),
-        -((WINDOW_WIDTH - 100) as f32 / WINDOW_WIDTH as f32)
-    ));
-
-    figure.set_scale(glm::vec2(
-        100.0 / WINDOW_HEIGHT as f32,
-        100.0 / WINDOW_WIDTH as f32
-    ));
-
-    let mut end_animation = false;
-
-    let acceleration = 0.001;
-    let mut speed = 0.0;
-    let mut position = 0.0;
-
-    while !end_animation && !gui.should_close_window() {
-
-        gui.start_frame();
-
-        speed += dt.as_secs_f32() * acceleration;
-        position += dt.as_secs_f32() * speed;
-
-        animation_gui(gui, &mut end_animation);
-
-        figure.set_position(&(figure.get_position() + glm::vec2(
-            position, 0.0
-        )));
-
-        figure.set_shearing(&glm::vec2(speed * 60.0, speed * 30.0));
+        figure.set_iterations(params_input.iterations);
+        figure.set_color_jump(params_input.color_jump);
 
         figure.render();
+
+        render_gui(&gui, &mut params_input, &mut show_animation);
 
         gui.end_frame();
 
@@ -155,98 +104,29 @@ fn animation(gui: &mut Gui, figure: &mut Figure) {
     }
 }
 
-fn animation_gui(gui: &Gui, end_animation: &mut bool) {
-
-    gui.show(|ui| {
-        if ui.button("End animation").clicked() {
-            *end_animation = true;
-        }
-    });
-}
-
 fn render_gui(
-    gui: &Gui, transformations: &mut TransformationsInput, show_animation: &mut bool
+    gui: &Gui, params_input: &mut ParamsInput, show_animation: &mut bool
 ) {
 
         gui.show(|ui| {
 
-            ui.label("Translation:");
-
+            ui.label("iterations:");
             ui.horizontal(|ui| {
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("x:");
-                ui.text_edit_singleline(&mut transformations.position_x_str);
-                if let Result::Ok(x) = transformations.position_x_str.parse::<f32>() {
-                    transformations.position.x = x / WINDOW_WIDTH as f32;
-                }
 
-                ui.separator();
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("y:");
-                ui.text_edit_singleline(&mut transformations.position_y_str);
-                if let Result::Ok(y) = transformations.position_y_str.parse::<f32>() {
-                    transformations.position.y = y / WINDOW_HEIGHT as f32;
+                ui.add(egui::Slider::u32(
+                    &mut params_input.iterations, 10..=params_input.max_iters
+                ));
+
+                ui.text_edit_singleline(&mut params_input.max_iters_str);
+                if let Result::Ok(i) = params_input.max_iters_str.parse::<u32>() {
+                    params_input.max_iters = i;
                 }
             });
 
-            ui.separator();
-
-            ui.label("Scaling:");
-
-            ui.horizontal(|ui| {
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("x:");
-                ui.text_edit_singleline(&mut transformations.scale_x_str);
-                if let Result::Ok(x) = transformations.scale_x_str.parse::<f32>() {
-                    transformations.scale.x = x;
-                }
-
-                ui.separator();
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("y:");
-                ui.text_edit_singleline(&mut transformations.scale_y_str);
-                if let Result::Ok(y) = transformations.scale_y_str.parse::<f32>() {
-                    transformations.scale.y = y;
-                }
-            });
-
-            ui.separator();
-
-            ui.label("Shearing:");
-
-            ui.horizontal(|ui| {
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("x:");
-                ui.text_edit_singleline(&mut transformations.shearing_x_str);
-                if let Result::Ok(x) = transformations.shearing_x_str.parse::<f32>() {
-                    transformations.shearing.x = x;
-                }
-
-                ui.separator();
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("y:");
-                ui.text_edit_singleline(&mut transformations.shearing_y_str);
-                if let Result::Ok(y) = transformations.shearing_y_str.parse::<f32>() {
-                    transformations.shearing.y = y;
-                }
-            });
-
-            ui.separator();
-
-            ui.horizontal(|ui| {
-                ui.set_max_size(egui::vec2(100.0, 10.0));
-                ui.label("Rotation:");
-                ui.text_edit_singleline(&mut transformations.rotations_str);
-                if let Result::Ok(r) = transformations.rotations_str.parse::<f32>() {
-                    transformations.rotation = (r * std::f64::consts::PI as f32) / 180.0;
-                }
-            });
-
-            ui.separator();
-
-            if ui.button("show_animation").clicked() {
-                *show_animation = true;
-            }
+            ui.label("Color jumps:");
+            ui.add(egui::Slider::u32(
+                &mut params_input.color_jump, 10..=100
+            ));
         });
 
 }
@@ -274,4 +154,26 @@ fn read_texture(path: &str) -> Texture {
         },
         _ => panic!("Unexpected image format."),
     }
+}
+
+fn get_move_deltas(gui: &Gui, dt: &Duration, move_speed: &glm::Vec2) -> glm::Vec2 {
+
+    let mut move_direction = glm::vec2(0.0, 0.0);
+
+    if gui.is_key_pressed(glfw::Key::D) {
+        move_direction.x = -1.0;
+    }
+    else if gui.is_key_pressed(glfw::Key::A) {
+        move_direction.x = 1.0;
+    }
+
+    if gui.is_key_pressed(glfw::Key::W) {
+        move_direction.y = -1.0;
+    }
+    else if gui.is_key_pressed(glfw::Key::S) {
+        move_direction.y = 1.0;
+    }
+
+    move_speed.component_mul(&move_direction) * dt.as_secs_f32() * 0.5
+
 }
