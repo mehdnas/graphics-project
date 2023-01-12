@@ -11,7 +11,7 @@ in vec2 pos;
 uniform uint iteration_count;
 uniform uint color_jump;
 uniform uint fract_type;
-uniform vec2 jula_c;
+uniform vec2 julia_c;
 
 out vec4 final_color;
 
@@ -42,9 +42,15 @@ vec4 iteration_color(uint i) {
 }
 
 void main() {
-
-  vec2 c = pos;
-  vec2 z = vec2(0, 0);
+  vec2 c;
+  vec2 z;
+  if (fract_type == MANDELBROT) {
+    c = pos;
+    z = vec2(0, 0);
+  } else {
+    c = julia_c;
+    z = pos;
+  }
   bool out_of_bounds = false;
   uint i;
   for (i = 0; i < iteration_count; i++) {

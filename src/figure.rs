@@ -8,9 +8,14 @@ use crate::{
 
 const VERTEX_SHADER_SRC: &str = "src/shaders/fig_vertex.glsl";
 const FRAGMENT_SHADER_SRC: &str = "src/shaders/fig_fragment.glsl";
+
 const TRANSFORM_UNIFORM_NAME: &str = "transform";
 const ITERATIONS_UNIFORM_NAME: &str = "iteration_count";
 const COLOR_JUMP_UNIFORM_NAME: &str = "color_jump";
+const FRACTAL_TYPE_UNIFORM_NAME: &str = "fract_type";
+pub const FRACTAL_TYPE_MANDELBROT: u32 = 0;
+pub const FRACTAL_TYPE_JULIA: u32 = 1;
+const JULIA_C_UNIFORM_NAME: &str = "julia_c";
 
 pub struct Figure {
     quad: Quad,
@@ -22,6 +27,8 @@ pub struct Figure {
     position: glm::Vec2,
     iterations: u32,
     color_jump: u32,
+    fractal_type: u32,
+    julia_c: glm::Vec2,
 }
 
 impl Default for Figure {
@@ -36,6 +43,8 @@ impl Default for Figure {
             position: glm::vec2(0.0, 0.0),
             iterations: 1000,
             color_jump: 100,
+            fractal_type: FRACTAL_TYPE_MANDELBROT,
+            julia_c: glm::vec2(-0.835, -0.2321)
         }
     }
 }
@@ -45,7 +54,7 @@ impl Figure {
     pub fn new() -> Self {
 
         let quad = Quad::from_vertex_positions(
-            [(-2., 1.), (1., 1.), (1., -1.), (-2., -1.)]
+            [(-3., 3.), (3., 3.), (3., -3.), (-3., -3.)]
         );
 
         let base_transform = glm::diagonal3x3(&glm::vec3(1.0, 1.0, 1.0));
@@ -63,8 +72,8 @@ impl Figure {
     }
 
     #[allow(dead_code)]
-    pub fn set_position(&mut self, new_position: &glm::Vec2) {
-        self.position = *new_position;
+    pub fn set_position(&mut self, new_value: glm::Vec2) {
+        self.position = new_value;
     }
 
     #[allow(dead_code)]
@@ -117,6 +126,29 @@ impl Figure {
         self.color_jump = new_value;
     }
 
+    #[allow(dead_code)]
+    pub fn get_fractal_type(&self) -> u32 {
+        self.fractal_type
+    }
+
+    #[allow(dead_code)]
+    pub fn set_fractal_type(&mut self, new_value: u32) {
+        assert!(
+            new_value == FRACTAL_TYPE_MANDELBROT || new_value == FRACTAL_TYPE_JULIA
+        );
+        self.fractal_type = new_value;
+    }
+
+    #[allow(dead_code)]
+    pub fn get_julia_c(&self) -> glm::Vec2 {
+        self.julia_c.clone()
+    }
+
+    #[allow(dead_code)]
+    pub fn set_julia_c(&mut self, new_value: glm::Vec2) {
+        self.julia_c = new_value;
+    }
+
     pub fn render(&self) {
 
         let mut transform = glm::identity();
@@ -130,6 +162,8 @@ impl Figure {
         self.shader.set_uniform_mat3(TRANSFORM_UNIFORM_NAME, &transform);
         self.shader.set_uniform_u32(ITERATIONS_UNIFORM_NAME, self.iterations);
         self.shader.set_uniform_u32(COLOR_JUMP_UNIFORM_NAME, self.color_jump);
+        self.shader.set_uniform_u32(FRACTAL_TYPE_UNIFORM_NAME, self.fractal_type);
+        self.shader.set_uniform_vec2(JULIA_C_UNIFORM_NAME, &self.julia_c);
         self.quad.render(&self.shader);
     }
 }

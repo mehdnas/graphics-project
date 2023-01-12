@@ -29,6 +29,9 @@ struct ParamsInput {
     max_iters: u32,
     iterations: u32,
     color_jump: u32,
+    fract_type: u32,
+    pause_julia: bool,
+    julia_speed: f32,
 }
 
 extern "system" fn gl_debug_proc(
@@ -65,6 +68,9 @@ fn main() {
         max_iters: 10000,
         iterations: 1000,
         color_jump: 100,
+        fract_type: figure::FRACTAL_TYPE_MANDELBROT,
+        pause_julia: false,
+        julia_speed: 0.1,
     };
     let move_speed = glm::Vec2::new(
         WINDOW_WIDTH as f32 / 500.0, WINDOW_HEIGHT as f32 / 500.0
@@ -77,6 +83,8 @@ fn main() {
     let mut start = Instant::now();
     let mut dt = Duration::from_secs_f32(1.0 / 60.0);
 
+    let mut alpha: f32 = 0.0;
+
     while !gui.should_close_window() {
 
         gui.start_frame();
@@ -88,10 +96,20 @@ fn main() {
         figure.set_scale(scale);
 
         let dpos = get_move_deltas(&gui, &dt, &move_speed) / scale.x;
-        figure.set_position(&(figure.get_position() + dpos));
+        figure.set_position(figure.get_position() + dpos);
 
         figure.set_iterations(params_input.iterations);
-        figure.set_color_jump(params_input.color_jump);
+        figure.set_color_jump((params_input.color_jump as f32 * (scale.x + 1.0).ln()) as u32);
+
+        figure.set_fractal_type(params_input.fract_type);
+
+        if params_input.fract_type == figure::FRACTAL_TYPE_JULIA && !params_input.pause_julia {
+            let julia_c = glm::vec2(alpha.cos(), alpha.sin()) * 0.7885;
+            alpha += params_input.julia_speed * dt.as_secs_f32();
+            alpha %= std::f32::consts::PI * 2.0;
+
+            figure.set_julia_c(julia_c);
+        }
 
         figure.render();
 
@@ -113,9 +131,13 @@ fn render_gui(
             ui.label("iterations:");
             ui.horizontal(|ui| {
 
+                ui.set_max_width(ui.min_size().x);
+
                 ui.add(egui::Slider::u32(
                     &mut params_input.iterations, 10..=params_input.max_iters
                 ));
+
+                ui.label("<");
 
                 ui.text_edit_singleline(&mut params_input.max_iters_str);
                 if let Result::Ok(i) = params_input.max_iters_str.parse::<u32>() {
@@ -127,8 +149,44 @@ fn render_gui(
             ui.add(egui::Slider::u32(
                 &mut params_input.color_jump, 10..=100
             ));
-        });
 
+            ui.separator();
+
+            ui.label("Fractal type:");
+
+            if ui.radio(
+                params_input.fract_type == figure::FRACTAL_TYPE_MANDELBROT,
+                "Mandelbrot",
+            ).clicked() {
+                params_input.fract_type = figure::FRACTAL_TYPE_MANDELBROT;
+            }
+
+            if ui.radio(
+                params_input.fract_type == figure::FRACTAL_TYPE_JULIA,
+                "Julia",
+            ).clicked() {
+                params_input.fract_type = figure::FRACTAL_TYPE_JULIA;
+            }
+
+            if params_input.fract_type == figure::FRACTAL_TYPE_JULIA {
+                ui.separator();
+
+                ui.label("Julia animation speed.");
+                ui.add(egui::Slider::f32(
+                    &mut params_input.julia_speed, 0.001..=1.0
+                ));
+
+                let mut pause_continue_button_str = "Pause";
+
+                if params_input.pause_julia {
+                    pause_continue_button_str = "Continue";
+                }
+
+                if ui.button(pause_continue_button_str).clicked() {
+                    params_input.pause_julia = !params_input.pause_julia;
+                }
+            }
+        });
 }
 
 fn read_texture(path: &str) -> Texture {
